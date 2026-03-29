@@ -17,6 +17,7 @@ import Restaurant from './components/singlepage/RestaurantPage';
 
 // --- नवीन RestaurantPagelist कंपोनंट Import केला ---
 import RestaurantPagelist from './components/singlepage/RestaurantPagelist';
+import StoresPagelist from './components/singlepage/StoresPagelist';
 
 // नवीन Advertisement कंपोनंट Import केला
 import Advertisement from './components/addvertisment/addvertisment';
@@ -62,6 +63,7 @@ const AppLayout = () => {
     location.pathname === '/signup' ||
     location.pathname === '/restaurant' ||
     location.pathname === '/restaurant-list' || 
+    location.pathname === '/stores-list' ||
     location.pathname === '/transaction-history' || 
     location.pathname === '/admin-login' ||
     location.pathname === '/admin-dashboard' ||
@@ -107,6 +109,7 @@ const AppLayout = () => {
           
           {/* नवीन RestaurantPagelist रूट */}
           <Route path="/restaurant-list" element={<RestaurantPagelist />} />
+          <Route path="/stores-list" element={<StoresPagelist />} />
 
           {/* --- नवीन Admin Info रूट अ‍ॅड केला --- */}
           <Route path="/admin/info" element={<Info />} />

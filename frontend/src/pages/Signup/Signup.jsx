@@ -211,7 +211,7 @@ function Signup() {
 
                 <div className="auth-header">
                     <div className="brand-logo">
-                        Magic<span>Point</span>
+                        Trip<span>spot</span>
                     </div>
                     <h2>Exclusive Membership</h2>
                     <p>Select a plan to unlock 500+ partner discounts</p>

@@ -30,7 +30,7 @@ const normalizeImageUrl = (rawUrl) => {
 };
 
 const FilterBar = ({ activeCategory, setActiveCategory }) => {
-  const categories = ["Food & Dining", "Activities & Adventure", "Local Stores & Gift House", "Stay & Hotels"];
+  const categories = ["Food & Dining", "Local Stores & Gift House", "Activities & Adventure", "Stay & Hotels"];
 
   return (
     <div className="mp-filter-section">
@@ -59,7 +59,7 @@ const OfferCard = ({ item, onClick, isPressed, onPressStart, onPressEnd }) => (
   >
     <div className="mpc-img-wrapper">
       <div className="mpc-offer-badge">
-        <strong>10%</strong>
+        <strong>{item.discount}%</strong>
         <span>OFF</span>
       </div>
       <img
@@ -248,6 +248,9 @@ const MainPageContent = () => {
             name: partner.restaurantName || "Partner Restaurant",
             rating: Number.isFinite(ratingValue) ? ratingValue.toFixed(1) : "0.0",
             foodType: String(partner?.foodType || "Veg").trim().toLowerCase(),
+            discount: Number.isFinite(Number(partner?.customerDiscount))
+              ? Number(partner.customerDiscount)
+              : 10,
             description:
               descriptionFromInfo ||
               descriptionFromPartner ||
@@ -291,7 +294,7 @@ const MainPageContent = () => {
             <button
               type="button"
               className="mp-view-all"
-              onClick={() => navigate("/restaurant-list")}
+              onClick={() => navigate(`/restaurant-list?category=${encodeURIComponent(activeCategory)}`)}
             >
               See All
             </button>
@@ -316,7 +319,7 @@ const MainPageContent = () => {
           <button
             type="button"
             className="mpc-explore-more"
-            onClick={() => navigate("/restaurant-list")}
+            onClick={() => navigate(`/restaurant-list?category=${encodeURIComponent(activeCategory)}`)}
           >
             Explore more..
           </button>

@@ -4,8 +4,10 @@ const { mongoUri } = require('./config/env');
 
 mongoose.connect(mongoUri)
 .then(async () => {
-    const adminExists = await Admin.findOne({ email: 'admin@magicpoint.com' });
-    if (!adminExists) {
+    const existingAdmin = await Admin.findOne({
+        $or: [{ email: 'admin@magicpoint.com' }, { username: 'SuperAdmin' }]
+    });
+    if (!existingAdmin) {
         await Admin.create({
             username: 'SuperAdmin',
             email: 'admin@magicpoint.com',
@@ -13,7 +15,9 @@ mongoose.connect(mongoUri)
         });
         console.log("Admin User Created!");
     } else {
-        console.log("Admin already exists.");
+        console.log(
+            `Admin already exists (username: ${existingAdmin.username}, email: ${existingAdmin.email}).`
+        );
     }
     await mongoose.connection.close();
     process.exit(0);

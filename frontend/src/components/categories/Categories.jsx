@@ -8,31 +8,31 @@ const Categories = () => {
     const categoriesData = [
         {
             id: 1,
-            title: "Hotels",
-            partners: "120+ Partners",
-            icon: <Hotel size={30} strokeWidth={2.5} />,
-            colorClass: "cat-blue"
-        },
-        {
-            id: 2,
-            title: "Food",
+            title: "Food & Dining",
             partners: "200+ Partners",
             icon: <Utensils size={30} strokeWidth={2.5} />,
             colorClass: "cat-green"
         },
         {
+            id: 2,
+            title: "Local Stores & Gift House",
+            partners: "100+ Partners",
+            icon: <ShoppingBag size={30} strokeWidth={2.5} />,
+            colorClass: "cat-purple"
+        },
+        {
             id: 3,
-            title: "Activities",
+            title: "Activities & Adventure",
             partners: "80+ Partners",
             icon: <Zap size={30} strokeWidth={2.5} />,
             colorClass: "cat-orange"
         },
         {
             id: 4,
-            title: "Stores",
-            partners: "100+ Partners",
-            icon: <ShoppingBag size={30} strokeWidth={2.5} />,
-            colorClass: "cat-purple"
+            title: "Stay & Hotels",
+            partners: "120+ Partners",
+            icon: <Hotel size={30} strokeWidth={2.5} />,
+            colorClass: "cat-blue"
         }
     ];
 

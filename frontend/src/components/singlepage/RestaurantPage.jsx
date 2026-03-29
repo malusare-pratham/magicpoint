@@ -36,6 +36,7 @@ const defaultInfo = {
   foodType: '',
   description: '',
   rating: 0,
+  discountPercent: 10,
   location: 'Connaught Place, New Delhi',
   openTime: '11:00 AM',
   closeTime: '11:00 PM',
@@ -315,6 +316,9 @@ const RestaurantPage = () => {
             restaurantName: basePartner.restaurantName || prev.restaurantName,
             subtitle: basePartner.businessCategory || prev.subtitle,
             foodType: basePartner.foodType || prev.foodType,
+            discountPercent: Number.isFinite(Number(basePartner.customerDiscount))
+              ? Number(basePartner.customerDiscount)
+              : prev.discountPercent,
             location: basePartner.area || prev.location,
             openTime: basePartner.openTime || prev.openTime,
             closeTime: basePartner.closeTime || prev.closeTime,
@@ -658,7 +662,8 @@ const RestaurantPage = () => {
                 navigate('/upload-bill', {
                   state: {
                     partnerId,
-                    partnerName: restaurantInfo.restaurantName || 'Partner Restaurant'
+                    partnerName: restaurantInfo.restaurantName || 'Partner Restaurant',
+                    discountPercent: restaurantInfo.discountPercent
                   }
                 })
               }
@@ -863,7 +868,8 @@ const RestaurantPage = () => {
                       navigate('/upload-bill', {
                         state: {
                           partnerId,
-                          partnerName: restaurantInfo.restaurantName || 'Partner Restaurant'
+                          partnerName: restaurantInfo.restaurantName || 'Partner Restaurant',
+                          discountPercent: restaurantInfo.discountPercent
                         }
                       })
                     }

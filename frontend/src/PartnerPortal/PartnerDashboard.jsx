@@ -237,7 +237,7 @@ const PartnerDashboard = () => {
 
     const handleLogout = () => {
         localStorage.clear();
-        window.location.href = '/partner-login';
+        window.location.href = '/';
     };
 
     const setField = (key, value) => {

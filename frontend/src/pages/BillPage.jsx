@@ -5,8 +5,8 @@ import './BillPage.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const fallbackPartners = [
-  { id: 'fallback-hotel', name: 'Luxury Stay Hotel' },
-  { id: 'fallback-restaurant', name: 'The Grand Restaurant' }
+  { id: 'fallback-hotel', name: 'Luxury Stay Hotel', discount: 10 },
+  { id: 'fallback-restaurant', name: 'The Grand Restaurant', discount: 10 }
 ];
 
 const BillPage = () => {
@@ -15,6 +15,11 @@ const BillPage = () => {
   const [partners, setPartners] = useState(fallbackPartners);
   const [selectedPartnerId, setSelectedPartnerId] = useState('');
   const [selectedPartnerName, setSelectedPartnerName] = useState('');
+  const [selectedDiscountPercent, setSelectedDiscountPercent] = useState(
+    Number.isFinite(Number(location?.state?.discountPercent))
+      ? Number(location.state.discountPercent)
+      : 10
+  );
   const [billFile, setBillFile] = useState(null);
   const [billAmount, setBillAmount] = useState('');
   const billFileInputRef = useRef(null);
@@ -28,7 +33,11 @@ const BillPage = () => {
         const activeOpen = list
           .filter((p) => String(p?.status || '').trim() === 'Active')
           .filter((p) => String(p?.businessStatus || 'OPEN').toUpperCase() === 'OPEN')
-          .map((p) => ({ id: p?._id, name: p?.restaurantName || 'Partner Restaurant' }));
+          .map((p) => ({
+            id: p?._id,
+            name: p?.restaurantName || 'Partner Restaurant',
+            discount: Number.isFinite(Number(p?.customerDiscount)) ? Number(p.customerDiscount) : 10
+          }));
 
         const nextPartners = activeOpen.length ? activeOpen : fallbackPartners;
         setPartners(nextPartners);
@@ -37,28 +46,38 @@ const BillPage = () => {
         const prefilledName = String(location?.state?.partnerName || '').trim();
         if (prefilledId || prefilledName) {
             const matched = prefilledId ? nextPartners.find((p) => String(p.id) === prefilledId) : null;
+            const locationDiscount = Number(location?.state?.discountPercent);
             setSelectedPartnerId(matched?.id || prefilledId || '');
             setSelectedPartnerName(prefilledName || matched?.name || '');
+            setSelectedDiscountPercent(
+              Number.isFinite(locationDiscount)
+                ? locationDiscount
+                : (matched?.discount ?? 10)
+            );
         } else if (nextPartners.length) {
             setSelectedPartnerId(String(nextPartners[0].id || ''));
             setSelectedPartnerName(String(nextPartners[0].name || 'Partner Restaurant'));
+            setSelectedDiscountPercent(Number(nextPartners[0].discount) || 10);
         }
       } catch (_error) {
         setPartners(fallbackPartners);
         const prefilledName = String(location?.state?.partnerName || '').trim();
         const prefilledId = String(location?.state?.partnerId || '').trim();
+        const locationDiscount = Number(location?.state?.discountPercent);
         if (prefilledName || prefilledId) {
           setSelectedPartnerName(prefilledName);
           setSelectedPartnerId(prefilledId);
+          setSelectedDiscountPercent(Number.isFinite(locationDiscount) ? locationDiscount : 10);
         } else if (fallbackPartners.length) {
           setSelectedPartnerId(String(fallbackPartners[0].id || ''));
           setSelectedPartnerName(String(fallbackPartners[0].name || 'Partner Restaurant'));
+          setSelectedDiscountPercent(Number(fallbackPartners[0].discount) || 10);
         }
       }
     };
 
     fetchPartners();
-  }, [location?.state?.partnerId, location?.state?.partnerName]);
+  }, [location?.state?.partnerId, location?.state?.partnerName, location?.state?.discountPercent]);
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -84,7 +103,7 @@ const BillPage = () => {
     }
 
     const numericBillAmount = Number(billAmount) || 0;
-    const discountPercent = 10;
+    const discountPercent = Number(selectedDiscountPercent) || 10;
     const discountAmount = (numericBillAmount * discountPercent) / 100;
     const otpPayload = {
       transactionId: `TXN${Math.floor(10000000 + Math.random() * 90000000)}`,
@@ -121,8 +140,8 @@ const BillPage = () => {
       {/* --- Top Navigation: Logo Left & Back Button Right --- */}
       <div className="bill-top-nav">
         <div className="brand-logo">
-          <span className="logo-magic">Magic</span>
-          <span className="logo-point">Point</span>
+          <span className="logo-magic">Trip</span>
+          <span className="logo-point">spot</span>
         </div>
 
         <button className="bill-back-btn" onClick={handleBack}>
@@ -145,7 +164,7 @@ const BillPage = () => {
             </svg>
           </div>
           <h1 className="main-bill-heading">Upload Your Bill</h1>
-          <p className="sub-bill-text">Get 10% discount verified instantly</p>
+          <p className="sub-bill-text">Get {selectedDiscountPercent}% discount verified instantly</p>
         </div>
 
         <div className="instructions-box">
@@ -240,7 +259,7 @@ const BillPage = () => {
 
         <div className="feature-grid">
           <div className="feature-item">
-            <span className="f-title text-green">10%</span>
+            <span className="f-title text-green">{selectedDiscountPercent}%</span>
             <span className="f-sub">Discount</span>
           </div>
           <div className="feature-item">

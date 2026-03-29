@@ -34,15 +34,15 @@ const MainContent = () => {
       apiCategory: "Food & Dining",
     },
     {
-      title: "Activities",
-      apiCategory: "Activities & Adventure",
-    },
-    {
-      title: "Stores",
+      title: "Local Stores & Gift House",
       apiCategory: "Local Stores & Gift House",
     },
     {
-      title: "Hotels & Villas",
+      title: "Activities & Adventure",
+      apiCategory: "Activities & Adventure",
+    },
+    {
+      title: "Stay & Hotels",
       apiCategory: "Stay & Hotels",
     }
   ];
@@ -77,6 +77,9 @@ const MainContent = () => {
         name: partner?.restaurantName || 'Partner Restaurant',
         area: partner?.area || 'Panchgani',
         img: normalizeImageUrl(partner?.imageUrl),
+        discount: Number.isFinite(Number(partner?.customerDiscount))
+          ? Number(partner.customerDiscount)
+          : 10,
       }));
   }, [partners, visibleCategory]);
 
@@ -108,7 +111,10 @@ const MainContent = () => {
             visibleItems.map((item) => (
               <div key={item.id} className="mc-deal-card" onClick={() => navigate('/signup')}>
                 <div className="mc-image-container">
-                  <div className="mc-discount-badge">10% OFF</div>
+                  <div className="mc-discount-badge">
+                    <strong>{item.discount}%</strong>
+                    <span>OFF</span>
+                  </div>
                   <img src={item.img} alt={item.name} loading="lazy" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_CARD_IMAGE; }} />
                 </div>
                 <div className="mc-card-info">

@@ -201,8 +201,8 @@ const VerifyOTP = () => {
     <div className="otp-page-container otp-scope">
       <div className="otp-top-nav">
         <div className="brand-logo">
-          <span className="logo-magic">Magic</span>
-          <span className="logo-point">Point</span>
+          <span className="logo-magic">Trip</span>
+          <span className="logo-point">spot</span>
         </div>
 
         <button className="otp-back-btn" onClick={handleBack}>
@@ -235,6 +235,10 @@ const VerifyOTP = () => {
           <div className="summary-row discount-row">
             <span className="label text-green">Your Discount ({discountPercent}%)</span>
             <span className="value text-green">- {formatCurrency(discountAmount)}</span>
+          </div>
+          <div className="summary-row">
+            <span className="label">Final Payable Amount</span>
+            <span className="value">{formatCurrency(finalAmount)}</span>
           </div>
         </div>
 

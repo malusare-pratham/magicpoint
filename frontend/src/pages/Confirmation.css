@@ -17,6 +17,32 @@
     margin-bottom: 20px;
 }
 
+.conf-scope .brand-logo {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 1.25rem;
+    font-weight: 900;
+    letter-spacing: -0.6px;
+}
+
+.conf-scope .logo-magic,
+.conf-scope .logo-point {
+    display: inline-block;
+    line-height: 1;
+}
+
+.conf-scope .logo-magic {
+    background: linear-gradient(90deg, #4c1d95, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.conf-scope .logo-point {
+    color: #ff4791;
+    font-weight: 900;
+}
+
 .conf-scope .home-btn  {
     background: white;
     border: none;

@@ -183,10 +183,11 @@
 
 .res-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: clamp(16px, 2vw, 30px);
   width: 100%;
   box-sizing: border-box;
+  justify-content: start;
 }
 
 .restaurant-card {
@@ -393,11 +394,13 @@
 .cuisine-txt {
   display: -webkit-box;
   max-width: 100%;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .loc-txt {

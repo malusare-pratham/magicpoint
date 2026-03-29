@@ -110,6 +110,7 @@
   flex-direction: column;
   gap: 6px;
   align-items: flex-start;
+  min-width: 0;
 }
 .rp-summary-title-row {
   display: flex;
@@ -396,6 +397,10 @@
   color: #475569;
   font-size: 0.95rem;
   line-height: 1.45;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .rp-overview-divider {
   margin: 14px 0;
@@ -1496,6 +1501,10 @@
   font-size: 0.88rem;
   color: #1f4434;
   text-decoration: none;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .rp-summary-subtext-row {
   display: block;

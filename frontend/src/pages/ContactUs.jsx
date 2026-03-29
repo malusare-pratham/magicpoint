@@ -14,7 +14,7 @@ const ContactUs = () => {
   const handleLogout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('authUser');
-    navigate('/login');
+    navigate('/');
   };
 
   useEffect(() => {

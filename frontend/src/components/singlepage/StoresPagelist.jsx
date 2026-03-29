@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import './RestaurantPagelist.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const DEFAULT_RESTAURANT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80';
+const DEFAULT_STORE_IMAGE = 'https://images.unsplash.com/photo-1604719312566-8912e9c8a213?auto=format&fit=crop&w=800&q=80';
+const STORE_CATEGORY = 'Local Stores & Gift House';
 
 const normalizeImageUrl = (rawUrl) => {
-  if (!rawUrl) return DEFAULT_RESTAURANT_IMAGE;
+  if (!rawUrl) return DEFAULT_STORE_IMAGE;
   const value = String(rawUrl).trim();
-  if (!value) return DEFAULT_RESTAURANT_IMAGE;
+  if (!value) return DEFAULT_STORE_IMAGE;
 
   if (/^https?:\/\//i.test(value)) return value;
   if (value.startsWith('//')) {
@@ -23,9 +24,8 @@ const normalizeImageUrl = (rawUrl) => {
   return `${base}/${path}`;
 };
 
-const RestaurantPagelist = () => {
+const StoresPagelist = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [partners, setPartners] = useState([]);
   const [partnerInfoById, setPartnerInfoById] = useState({});
   const [reviewStatsById, setReviewStatsById] = useState({});
@@ -125,62 +125,16 @@ const RestaurantPagelist = () => {
     };
   }, [partners]);
 
-  const categoryParam = useMemo(() => {
-    const params = new URLSearchParams(location.search || '');
-    const raw = params.get('category');
-    return raw ? decodeURIComponent(raw) : '';
-  }, [location.search]);
-
-  const pageLabels = useMemo(() => {
-    const category = String(categoryParam || '').trim();
-    if (!category) {
-      return {
-        title: 'Restaurants Near You',
-        subtitle: 'Discover great food spots around your location.',
-        cta: 'Check out all the restaurants',
-        searchPlaceholder: 'Search restaurants...'
-      };
-    }
-
-    if (category.toLowerCase() === 'activities & adventure'.toLowerCase()) {
-      return {
-        title: 'Activities & Adventure Near You',
-        subtitle: 'Discover thrilling adventures around your location.',
-        cta: 'Check out all the activities',
-        searchPlaceholder: 'Search activities...'
-      };
-    }
-
-    if (category.toLowerCase() === 'local stores & gift house'.toLowerCase()) {
-      return {
-        title: 'Local Stores & Gift House Near You',
-        subtitle: 'Discover great stores around your location.',
-        cta: 'Check out all the stores',
-        searchPlaceholder: 'Search stores...'
-      };
-    }
-
-    if (category.toLowerCase() === 'stay & hotels'.toLowerCase()) {
-      return {
-        title: 'Stay & Hotels Near You',
-        subtitle: 'Discover stays around your location.',
-        cta: 'Check out all the hotels',
-        searchPlaceholder: 'Search hotels...'
-      };
-    }
-
-    return {
-      title: `${category} Near You`,
-      subtitle: `Discover ${category.toLowerCase()} around your location.`,
-      cta: `Check out all the ${category.toLowerCase()}`,
-      searchPlaceholder: `Search ${category.toLowerCase()}...`
-    };
-  }, [categoryParam]);
-
   const restaurants = useMemo(
     () =>
       partners
         .filter((partner) => String(partner?.status || '').trim() !== 'Blocked')
+        .filter((partner) => {
+          const category = String(partner?.businessCategory || '').trim().toLowerCase();
+          if (!category) return false;
+          if (category === STORE_CATEGORY.toLowerCase()) return true;
+          return category.includes('store') || category.includes('shop');
+        })
         .map((partner, index) => {
           const partnerId = String(partner?._id || '').trim();
           const info = partnerInfoById[partnerId];
@@ -197,9 +151,9 @@ const RestaurantPagelist = () => {
 
           return {
             id: partner?._id || index,
-            name: partner?.restaurantName || 'Partner Restaurant',
+            name: partner?.restaurantName || 'Store',
             rating: Number.isFinite(ratingValue) ? ratingValue.toFixed(1) : '0.0',
-            foodType: String(partner?.foodType || 'Veg').trim().toLowerCase(),
+            foodType: String(partner?.foodType || 'both').trim().toLowerCase(),
             discount: Number.isFinite(Number(partner?.customerDiscount))
               ? Number(partner.customerDiscount)
               : 10,
@@ -208,11 +162,10 @@ const RestaurantPagelist = () => {
               descriptionFromPartner ||
               addressFromPartner ||
               categoryFromPartner ||
-              'Great food and service',
+              'Best products available',
             location: partner?.area || 'Panchgani',
             distance: partner?.distance || '1.2 km',
-            img: normalizeImageUrl(partner?.imageUrl),
-            businessCategory: categoryFromPartner,
+            img: normalizeImageUrl(partner?.imageUrl || partner?.resImage),
             hasOffer: true,
             petFriendly:
               Boolean(partner?.petFriendly) ||
@@ -231,7 +184,6 @@ const RestaurantPagelist = () => {
     const query = String(searchTerm || '').trim().toLowerCase();
 
     return restaurants.filter((item) => {
-      if (categoryParam && String(item.businessCategory || '').trim() !== categoryParam) return false;
       if (activeFilters.rating45 && Number(item.rating) < 4.5) return false;
       if (activeFilters.petFriendly && hasPetData && !item.petFriendly) return false;
       if (activeFilters.outdoorSeating && hasOutdoorData && !item.outdoorSeating) return false;
@@ -243,8 +195,7 @@ const RestaurantPagelist = () => {
       }
       return true;
     });
-  }, [restaurants, activeFilters, searchTerm, categoryParam]);
-
+  }, [restaurants, activeFilters, searchTerm]);
 
   const activeFilterCount = useMemo(
     () => Object.values(activeFilters).filter(Boolean).length,
@@ -284,8 +235,8 @@ const RestaurantPagelist = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={pageLabels.searchPlaceholder}
-            aria-label="Search restaurants"
+            placeholder="Search stores..."
+            aria-label="Search stores"
           />
           <button type="button" className="rl-search-btn">
             Get Deal
@@ -323,14 +274,14 @@ const RestaurantPagelist = () => {
           <div className="banner-txt">
             <p>Get up to</p>
             <h1 className="discount-val">10% OFF</h1>
-            <p>on your dining bills with Tripspotgo</p>
-            <button className="cta-btn">{pageLabels.cta}</button>
+            <p>on your shopping bills with Tripspotgo</p>
+            <button className="cta-btn">Check out all the stores</button>
           </div>
         </div>
       </div>
 
-      <h2 className="city-title">{pageLabels.title}</h2>
-      <p className="city-subtitle">{pageLabels.subtitle}</p>
+      <h2 className="city-title">Stores Near You</h2>
+      <p className="city-subtitle">Discover great stores around your location.</p>
 
       <div className="res-grid">
         {filteredRestaurants.length > 0 ? (
@@ -351,7 +302,7 @@ const RestaurantPagelist = () => {
                   alt={item.name}
                   onError={(e) => {
                     e.currentTarget.onerror = null;
-                    e.currentTarget.src = DEFAULT_RESTAURANT_IMAGE;
+                    e.currentTarget.src = DEFAULT_STORE_IMAGE;
                   }}
                 />
               </div>
@@ -384,11 +335,11 @@ const RestaurantPagelist = () => {
             </div>
           ))
         ) : (
-          <p>No restaurants available for selected filters.</p>
+          <p>No stores available for selected filters.</p>
         )}
       </div>
     </div>
   );
 };
 
-export default RestaurantPagelist;
+export default StoresPagelist;
