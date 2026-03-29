@@ -29,6 +29,15 @@
     }
 }
 
+@media (max-width: 768px) {
+    .signup-scope .auth-card {
+        background: transparent;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 30px 18px;
+    }
+}
+
 .signup-scope .auth-header  {
     margin-top: -20px;
 }
@@ -95,6 +104,11 @@
     gap: 25px;
     margin-top: 30px;
     margin-bottom: 40px;
+}
+
+.signup-scope .plans-display-container.single-plan-center {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
 }
 
 .signup-scope .premium-plan-card  {

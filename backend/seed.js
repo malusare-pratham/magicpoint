@@ -3,6 +3,23 @@ const { connectDB, disconnectDB } = require('./config/db');
 
 const plans = [
     {
+        title: 'Family Plan',
+        price: 99,
+        billingCycle: '2 day',
+        durationHours: 48,
+        badge: 'Best Value',
+        ctaText: 'Select Family Plan',
+        sortOrder: 2,
+        features: [
+            '10% discount at 500+ partners',
+            'Valid for 2 Days (48 Hours)',
+            'Unlimited redemptions',
+            'Secure OTP verification',
+            'Up to 4 family members'
+        ],
+        isActive: true
+    },
+    {
         title: 'Basic Plan',
         price: 999,
         features: ['Local Trips', '24/7 Support'],

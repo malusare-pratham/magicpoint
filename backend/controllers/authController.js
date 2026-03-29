@@ -1,13 +1,9 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const User = require('../models/User');
+const Membership = require('../models/Membership');
 const generateToken = require('../utils/generateToken');
 const asyncHandler = require('../middleware/asyncHandler');
-
-const MEMBERSHIP_PLAN_AMOUNT_MAP = {
-    'Single Plan': 5000,
-    'Family Plan': 9900
-};
 
 const normalizeIdentifier = (email, mobile) => {
     if (email) {
@@ -20,19 +16,51 @@ const normalizeIdentifier = (email, mobile) => {
     return null;
 };
 
-const validateAndBuildUserPayload = (rawData = {}) => {
+const validateAndBuildUserPayload = async (rawData = {}) => {
     const { name, email, mobile, password, membershipPlan } = rawData;
 
     if (!name || !mobile || !password || !membershipPlan) {
+        const activePlanCount = await Membership.countDocuments({ isActive: true });
+        if (activePlanCount === 0) {
+            const fallbackPlan = String(membershipPlan || 'Free Plan').trim() || 'Free Plan';
+            const userPayload = {
+                name: String(name || '').trim(),
+                password: String(password || ''),
+                mobileNumber: String(mobile || '').trim(),
+                membershipPlan: fallbackPlan,
+                ...(email ? { email: String(email).trim().toLowerCase() } : {})
+            };
+
+            if (!userPayload.name || !userPayload.mobileNumber || !userPayload.password) {
+                const error = new Error('name, mobile and password are required');
+                error.statusCode = 400;
+                throw error;
+            }
+
+            return { userPayload, planDoc: null, hasActivePlans: false };
+        }
+
         const error = new Error('name, mobile, password and membershipPlan are required');
         error.statusCode = 400;
         throw error;
     }
 
     const normalizedPlan = String(membershipPlan).trim();
-    const allowedPlans = Object.keys(MEMBERSHIP_PLAN_AMOUNT_MAP);
-    if (!allowedPlans.includes(normalizedPlan)) {
-        const error = new Error('membershipPlan must be Single Plan or Family Plan');
+    const activePlanCount = await Membership.countDocuments({ isActive: true });
+    if (activePlanCount === 0) {
+        const userPayload = {
+            name: String(name).trim(),
+            password: String(password),
+            mobileNumber: String(mobile).trim(),
+            membershipPlan: normalizedPlan || 'Free Plan',
+            ...(email ? { email: String(email).trim().toLowerCase() } : {})
+        };
+        return { userPayload, planDoc: null, hasActivePlans: false };
+    }
+
+    const planDoc = await Membership.findOne({ title: normalizedPlan, isActive: true }).lean();
+    if (!planDoc) {
+        const error = new Error('membershipPlan is invalid or inactive');
         error.statusCode = 400;
         throw error;
     }
@@ -57,7 +85,7 @@ const validateAndBuildUserPayload = (rawData = {}) => {
         throw error;
     }
 
-    return userPayload;
+    return { userPayload, planDoc, hasActivePlans: true };
 };
 
 const findExistingUser = async (userPayload) => {
@@ -73,7 +101,7 @@ const findExistingUser = async (userPayload) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-    const userPayload = validateAndBuildUserPayload(req.body || {});
+    const { userPayload } = await validateAndBuildUserPayload(req.body || {});
 
     const existingUser = await findExistingUser(userPayload);
     if (existingUser) {
@@ -94,7 +122,7 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const createSignupOrder = asyncHandler(async (req, res) => {
-    const userPayload = validateAndBuildUserPayload(req.body || {});
+    const { userPayload, planDoc } = await validateAndBuildUserPayload(req.body || {});
 
     const existingUser = await findExistingUser(userPayload);
     if (existingUser) {
@@ -112,9 +140,20 @@ const createSignupOrder = asyncHandler(async (req, res) => {
         throw error;
     }
 
-    const amount = MEMBERSHIP_PLAN_AMOUNT_MAP[userPayload.membershipPlan];
+    if (!planDoc) {
+        const error = new Error('No active membership plans available.');
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const amountInPaise = Math.round(Number(planDoc.price) * 100);
+    if (!Number.isFinite(amountInPaise) || amountInPaise <= 0) {
+        const error = new Error('Invalid membership price');
+        error.statusCode = 400;
+        throw error;
+    }
     const orderPayload = {
-        amount,
+        amount: amountInPaise,
         currency: 'INR',
         receipt: `signup_${Date.now()}_${userPayload.mobileNumber}`,
         payment_capture: 1,
@@ -147,7 +186,7 @@ const createSignupOrder = asyncHandler(async (req, res) => {
         success: true,
         keyId: razorpayKeyId,
         order: data,
-        amount,
+        amount: amountInPaise,
         currency: 'INR'
     });
 });
@@ -184,7 +223,12 @@ const verifySignupPaymentAndRegister = asyncHandler(async (req, res) => {
         throw error;
     }
 
-    const userPayload = validateAndBuildUserPayload(registrationData || {});
+    const { userPayload, planDoc } = await validateAndBuildUserPayload(registrationData || {});
+    if (!planDoc) {
+        const error = new Error('No active membership plans available.');
+        error.statusCode = 400;
+        throw error;
+    }
     const existingUser = await findExistingUser(userPayload);
     if (existingUser) {
         const error = new Error('User already exists with the given email/mobile');
@@ -193,7 +237,8 @@ const verifySignupPaymentAndRegister = asyncHandler(async (req, res) => {
     }
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    const durationHours = Number(planDoc?.durationHours) || 48;
+    const expiresAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
     const user = await User.create({
         ...userPayload,
         membershipActivatedAt: now,

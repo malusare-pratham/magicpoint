@@ -47,6 +47,22 @@ const AdminDashboard = () => {
     const [resImageFile, setResImageFile] = useState(null);
     const [loadingList, setLoadingList] = useState(true);
     const [savingPartner, setSavingPartner] = useState(false);
+    const [membershipPlans, setMembershipPlans] = useState([]);
+    const [membershipLoading, setMembershipLoading] = useState(false);
+    const [membershipSaving, setMembershipSaving] = useState(false);
+    const [showMembershipForm, setShowMembershipForm] = useState(false);
+    const [membershipForm, setMembershipForm] = useState({
+        title: '',
+        price: '',
+        billingCycle: '',
+        durationHours: 48,
+        badge: '',
+        ctaText: '',
+        sortOrder: 0,
+        isActive: true,
+        featuresList: ['']
+    });
+    const [editingMembershipId, setEditingMembershipId] = useState(null);
 
     const fetchDashboard = async () => {
         try {
@@ -77,9 +93,34 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchMembershipPlans = async () => {
+        try {
+            setMembershipLoading(true);
+            let list = [];
+            try {
+                const res = await axios.get(`${API_BASE_URL}/api/memberships/all`);
+                list = Array.isArray(res?.data?.data) ? res.data.data : [];
+            } catch (_allError) {
+                const res = await axios.get(`${API_BASE_URL}/api/memberships`);
+                list = Array.isArray(res?.data?.data) ? res.data.data : [];
+            }
+            setMembershipPlans(list);
+        } catch (_error) {
+            alert('Error loading membership plans');
+        } finally {
+            setMembershipLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchDashboard();
     }, []);
+
+    useEffect(() => {
+        if (quickTab === 'memberships' || quickTab === 'members') {
+            fetchMembershipPlans();
+        }
+    }, [quickTab]);
 
     useEffect(() => {
         const timer = setInterval(() => setNowTick(Date.now()), 1000);
@@ -166,6 +207,144 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleMembershipChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setMembershipForm((prev) => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
+    };
+
+    const resetMembershipForm = () => {
+        setMembershipForm({
+            title: '',
+            price: '',
+            billingCycle: '',
+            durationHours: 48,
+            badge: '',
+            ctaText: '',
+            sortOrder: 0,
+            isActive: true,
+            featuresList: ['']
+        });
+        setEditingMembershipId(null);
+    };
+
+    const handleMembershipSubmit = async (e) => {
+        e.preventDefault();
+        const title = String(membershipForm.title || '').trim();
+        if (!title) {
+            alert('Membership title is required');
+            return;
+        }
+
+        const price = Number(membershipForm.price);
+        if (!Number.isFinite(price) || price < 0) {
+            alert('Valid price is required');
+            return;
+        }
+
+        const payload = {
+            title,
+            price,
+            billingCycle: String(membershipForm.billingCycle || '').trim(),
+            durationHours: Number(membershipForm.durationHours) || 48,
+            badge: String(membershipForm.badge || '').trim(),
+            ctaText: String(membershipForm.ctaText || '').trim(),
+            sortOrder: Number(membershipForm.sortOrder) || 0,
+            isActive: Boolean(membershipForm.isActive),
+            features: Array.isArray(membershipForm.featuresList)
+                ? membershipForm.featuresList.map((line) => String(line || '').trim()).filter(Boolean)
+                : []
+        };
+
+        try {
+            setMembershipSaving(true);
+            if (editingMembershipId) {
+                await axios.put(`${API_BASE_URL}/api/memberships/${editingMembershipId}`, payload);
+            } else {
+                await axios.post(`${API_BASE_URL}/api/memberships`, payload);
+            }
+            await fetchMembershipPlans();
+            resetMembershipForm();
+            setShowMembershipForm(false);
+        } catch (error) {
+            alert(error?.response?.data?.message || 'Error saving membership plan');
+        } finally {
+            setMembershipSaving(false);
+        }
+    };
+
+    const handleMembershipEdit = (plan) => {
+        const planId = plan?._id || plan?.id || null;
+        setEditingMembershipId(planId);
+        setMembershipForm({
+            title: plan?.title || '',
+            price: plan?.price ?? '',
+            billingCycle: plan?.billingCycle || '',
+            durationHours: plan?.durationHours || 48,
+            badge: plan?.badge || '',
+            ctaText: plan?.ctaText || '',
+            sortOrder: plan?.sortOrder || 0,
+            isActive: plan?.isActive !== false,
+            featuresList: Array.isArray(plan?.features) && plan.features.length ? plan.features : ['']
+        });
+        setQuickTab('memberships');
+    };
+
+    const handleMembershipDelete = async (id) => {
+        if (!id) {
+            alert('Membership id missing');
+            return;
+        }
+        if (!window.confirm('Delete this membership plan?')) return;
+        try {
+            await axios.delete(`${API_BASE_URL}/api/memberships/${id}`);
+            await fetchMembershipPlans();
+        } catch (error) {
+            alert(error?.response?.data?.message || 'Error deleting membership plan');
+        }
+    };
+
+    const handleMembershipToggle = async (plan) => {
+        const planId = plan?._id || plan?.id;
+        if (!planId) {
+            alert('Membership id missing');
+            return;
+        }
+        try {
+            await axios.put(`${API_BASE_URL}/api/memberships/${planId}`, {
+                isActive: !(plan?.isActive !== false)
+            });
+            await fetchMembershipPlans();
+        } catch (_error) {
+            alert('Error updating membership status');
+        }
+    };
+
+    const addFeatureField = () => {
+        setMembershipForm((prev) => ({
+            ...prev,
+            featuresList: [...(prev.featuresList || []), '']
+        }));
+    };
+
+    const updateFeatureField = (idx, value) => {
+        setMembershipForm((prev) => {
+            const next = [...(prev.featuresList || [])];
+            next[idx] = value;
+            return { ...prev, featuresList: next };
+        });
+    };
+
+    const removeFeatureField = (idx) => {
+        setMembershipForm((prev) => {
+            const next = [...(prev.featuresList || [])];
+            next.splice(idx, 1);
+            return { ...prev, featuresList: next.length ? next : [''] };
+        });
+    };
+
 
     const formattedUsers = useMemo(
         () =>
@@ -186,6 +365,15 @@ const AdminDashboard = () => {
         );
         return ['All Categories', ...unique];
     }, [partners]);
+
+    const membershipPriceByTitle = useMemo(() => {
+        const map = new Map();
+        membershipPlans.forEach((plan) => {
+            const title = String(plan?.title || '').trim().toLowerCase();
+            if (title) map.set(title, Number(plan?.price ?? 0));
+        });
+        return map;
+    }, [membershipPlans]);
 
     const filteredPartners = useMemo(() => {
         if (partnerCategoryFilter === 'All Categories') return partners;
@@ -255,9 +443,11 @@ const AdminDashboard = () => {
                             const seconds = totalSeconds % 60;
                             return `${hours}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
                         })();
-                const plan = String(user?.membershipPlan || 'single').toLowerCase();
-                const type = plan.includes('family') ? 'Family' : 'Single';
-                const typeKey = plan.includes('family') ? 'family' : 'single';
+                const plan = String(user?.membershipPlan || '').toLowerCase();
+                const isFreePlan = !plan || plan.includes('free');
+                const type = isFreePlan ? 'Free' : (plan.includes('family') ? 'Family' : 'Single');
+                const typeKey = isFreePlan ? 'free' : (plan.includes('family') ? 'family' : 'single');
+                const planAmount = isFreePlan ? 0 : (membershipPriceByTitle.get(plan) ?? null);
                 const stat = userStatsById[String(user.id)] || {};
                 return {
                     id: user.id,
@@ -266,6 +456,7 @@ const AdminDashboard = () => {
                     email: user.email || '-',
                     type,
                     typeKey,
+                    planAmount,
                     joinDate,
                     expiryDate,
                     remaining,
@@ -280,7 +471,7 @@ const AdminDashboard = () => {
                 const mobile = String(member.mobile || '').toLowerCase();
                 return name.includes(query) || mobile.includes(query);
             });
-    }, [formattedUsers, memberSearch, userStatsById, nowTick]);
+    }, [formattedUsers, memberSearch, userStatsById, nowTick, membershipPriceByTitle]);
 
     return (
         <div className="admin-dashboard">
@@ -399,6 +590,14 @@ const AdminDashboard = () => {
                             </button>
                             <button
                                 type="button"
+                                className={`admin-quick-pill ${quickTab === 'memberships' ? 'active' : ''}`}
+                                onClick={() => setQuickTab('memberships')}
+                            >
+                                <i className="fa-solid fa-id-card"></i>
+                                Membership Plans
+                            </button>
+                            <button
+                                type="button"
                                 className={`admin-quick-pill ${quickTab === 'seo' ? 'active' : ''}`}
                                 onClick={() => setQuickTab('seo')}
                             >
@@ -409,6 +608,237 @@ const AdminDashboard = () => {
 
                         {quickTab === 'seo' ? (
                             <AdminSeoEditor />
+                        ) : quickTab === 'memberships' ? (
+                            <div className="members-card">
+                                <div className="members-card-header">
+                                    <div>
+                                        <h3>Membership Plans</h3>
+                                    </div>
+                                    <div className="members-toolbar">
+                                        <button type="button" className="members-export-btn" onClick={resetMembershipForm}>
+                                            <i className="fa-solid fa-rotate-left"></i>
+                                            Reset Form
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="admin-plan-grid" style={{ marginTop: '18px' }}>
+                                    {membershipPlans.length > 0 ? (
+                                        membershipPlans.map((plan, index) => {
+                                            const planId = plan?._id || plan?.id || `${index}`;
+                                            const title = String(plan?.title || '').trim() || 'Untitled Plan';
+                                            const price = Number(plan?.price || 0);
+                                            const billingCycle = String(plan?.billingCycle || '').trim();
+                                            const badgeText = String(plan?.badge || '').trim();
+                                            const durationHours = Number(plan?.durationHours || 0) || 48;
+                                            const sortOrder = plan?.sortOrder ?? 0;
+                                            const isActive = plan?.isActive !== false;
+                                            const features = Array.isArray(plan?.features) ? plan.features : [];
+                                            const isFamily = title.toLowerCase().includes('family');
+                                            const toneClass = isFamily ? 'tone-green' : 'tone-blue';
+                                            const isEditing = editingMembershipId === planId;
+                                            const days = Number.isFinite(durationHours) ? durationHours / 24 : 0;
+                                            const durationLabel = Number.isFinite(days) && Number.isInteger(days) && days > 0
+                                                ? `${days} Day${days === 1 ? '' : 's'} (${durationHours} Hours)`
+                                                : `${durationHours} Hours`;
+                                            return (
+                                                <div key={planId} className={`admin-plan-shell ${toneClass}`}>
+                                                    <div className={`admin-plan-card ${toneClass} ${isActive ? '' : 'is-inactive'}`}>
+                                                        <div className={`admin-plan-badge ${badgeText ? '' : 'is-hidden'}`}>{badgeText || 'Popular'}</div>
+                                                        <div className={`admin-plan-visual ${toneClass}`}>
+                                                            <i className={`fa-solid ${isFamily ? 'fa-users' : 'fa-user'}`}></i>
+                                                        </div>
+                                                        {isEditing ? (
+                                                            <form className="admin-plan-edit-form" onSubmit={handleMembershipSubmit}>
+                                                                <div className="admin-plan-edit-grid">
+                                                                    <label>Title</label>
+                                                                    <input name="title" value={membershipForm.title} onChange={handleMembershipChange} required />
+                                                                    <label>Price</label>
+                                                                    <input name="price" type="number" min="0" step="0.01" value={membershipForm.price} onChange={handleMembershipChange} required />
+                                                                    <label>Billing</label>
+                                                                    <input name="billingCycle" value={membershipForm.billingCycle} onChange={handleMembershipChange} />
+                                                                    <label>Hours</label>
+                                                                    <input name="durationHours" type="number" min="1" value={membershipForm.durationHours} onChange={handleMembershipChange} />
+                                                                    <label>Badge</label>
+                                                                    <input name="badge" value={membershipForm.badge} onChange={handleMembershipChange} />
+                                                                    <label>CTA</label>
+                                                                    <input name="ctaText" value={membershipForm.ctaText} onChange={handleMembershipChange} />
+                                                                    <label>Sort</label>
+                                                                    <input name="sortOrder" type="number" step="1" value={membershipForm.sortOrder} onChange={handleMembershipChange} />
+                                                                    <label className="edit-toggle-label">Active</label>
+                                                                    <label className="toggle-switch">
+                                                                        <input name="isActive" type="checkbox" checked={membershipForm.isActive} onChange={handleMembershipChange} />
+                                                                        <span className="toggle-slider"></span>
+                                                                    </label>
+                                                                    <div className="full-width feature-field-group">
+                                                                        <div className="feature-field-header">
+                                                                            <label>Features</label>
+                                                                            <button type="button" className="feature-add-btn" onClick={addFeatureField}>
+                                                                                <i className="fa-solid fa-plus"></i>
+                                                                                Add
+                                                                            </button>
+                                                                        </div>
+                                                                        <div className="feature-field-list">
+                                                                            {(membershipForm.featuresList || ['']).map((feature, idx) => (
+                                                                                <div key={`edit-feature-${idx}`} className="feature-field-row">
+                                                                                    <input
+                                                                                        type="text"
+                                                                                        value={feature}
+                                                                                        onChange={(e) => updateFeatureField(idx, e.target.value)}
+                                                                                        placeholder="Feature detail"
+                                                                                    />
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className="feature-remove-btn"
+                                                                                        onClick={() => removeFeatureField(idx)}
+                                                                                        aria-label="Remove feature"
+                                                                                    >
+                                                                                        <i className="fa-solid fa-xmark"></i>
+                                                                                    </button>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="admin-plan-edit-actions">
+                                                                    <button type="submit" className="save-btn" disabled={membershipSaving}>
+                                                                        {membershipSaving ? 'Saving...' : 'Update Plan'}
+                                                                    </button>
+                                                                    <button type="button" className="members-delete-btn admin-plan-cancel" onClick={resetMembershipForm}>
+                                                                        Cancel
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        ) : (
+                                                            <>
+                                                                <h4>{title}</h4>
+                                                                <div className="admin-plan-price">
+                                                                    ₹{price}
+                                                                    <span>{billingCycle ? `/${billingCycle}` : ''}</span>
+                                                                </div>
+                                                                <ul className="admin-plan-features">
+                                                                    {features.length > 0 ? (
+                                                                        features.map((feature, idx) => (
+                                                                            <li key={`${planId}-${idx}`}>{feature}</li>
+                                                                        ))
+                                                                    ) : (
+                                                                        <li>No feature list added yet</li>
+                                                                    )}
+                                                                    <li>Valid for {durationLabel}</li>
+                                                                    <li>Sort order: {sortOrder}</li>
+                                                                    <li>Status: {isActive ? 'Active' : 'Inactive'}</li>
+                                                                </ul>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    {!isEditing && (
+                                                        <div className="admin-plan-actions admin-plan-actions-outside">
+                                                            <button type="button" className="members-delete-btn" onClick={() => handleMembershipEdit({ ...plan, _id: planId })}>
+                                                                Edit
+                                                            </button>
+                                                            <button type="button" className="members-delete-btn" onClick={() => handleMembershipToggle({ ...plan, _id: planId })}>
+                                                                {isActive ? 'Disable' : 'Enable'}
+                                                            </button>
+                                                            <button type="button" className="members-delete-btn" onClick={() => handleMembershipDelete(planId)}>
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="admin-plan-empty">
+                                            {membershipLoading ? 'Loading...' : 'No membership plans found.'}
+                                        </div>
+                                    )}
+                                    <div className="admin-plan-shell admin-plan-add">
+                                        <div className="admin-plan-card admin-plan-add-card">
+                                            <div className="admin-plan-visual tone-blue">
+                                                <i className="fa-solid fa-plus"></i>
+                                            </div>
+                                            {showMembershipForm && !editingMembershipId ? (
+                                                <form className="admin-plan-edit-form" onSubmit={handleMembershipSubmit}>
+                                                    <div className="admin-plan-edit-grid">
+                                                        <label>Title</label>
+                                                        <input name="title" value={membershipForm.title} onChange={handleMembershipChange} required />
+                                                        <label>Price</label>
+                                                        <input name="price" type="number" min="0" step="0.01" value={membershipForm.price} onChange={handleMembershipChange} required />
+                                                        <label>Billing</label>
+                                                        <input name="billingCycle" value={membershipForm.billingCycle} onChange={handleMembershipChange} />
+                                                        <label>Hours</label>
+                                                        <input name="durationHours" type="number" min="1" value={membershipForm.durationHours} onChange={handleMembershipChange} />
+                                                        <label>Badge</label>
+                                                        <input name="badge" value={membershipForm.badge} onChange={handleMembershipChange} />
+                                                        <label>CTA</label>
+                                                        <input name="ctaText" value={membershipForm.ctaText} onChange={handleMembershipChange} />
+                                                        <label>Sort</label>
+                                                        <input name="sortOrder" type="number" step="1" value={membershipForm.sortOrder} onChange={handleMembershipChange} />
+                                                        <label className="edit-toggle-label">Active</label>
+                                                        <label className="toggle-switch">
+                                                            <input name="isActive" type="checkbox" checked={membershipForm.isActive} onChange={handleMembershipChange} />
+                                                            <span className="toggle-slider"></span>
+                                                        </label>
+                                                        <div className="full-width feature-field-group">
+                                                            <div className="feature-field-header">
+                                                                <label>Features</label>
+                                                                <button type="button" className="feature-add-btn" onClick={addFeatureField}>
+                                                                    <i className="fa-solid fa-plus"></i>
+                                                                    Add
+                                                                </button>
+                                                            </div>
+                                                            <div className="feature-field-list">
+                                                                {(membershipForm.featuresList || ['']).map((feature, idx) => (
+                                                                    <div key={`add-feature-${idx}`} className="feature-field-row">
+                                                                        <input
+                                                                            type="text"
+                                                                            value={feature}
+                                                                            onChange={(e) => updateFeatureField(idx, e.target.value)}
+                                                                            placeholder="Feature detail"
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            className="feature-remove-btn"
+                                                                            onClick={() => removeFeatureField(idx)}
+                                                                            aria-label="Remove feature"
+                                                                        >
+                                                                            <i className="fa-solid fa-xmark"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="admin-plan-edit-actions">
+                                                        <button type="submit" className="save-btn" disabled={membershipSaving}>
+                                                            {membershipSaving ? 'Saving...' : 'Add Plan'}
+                                                        </button>
+                                                        <button type="button" className="members-delete-btn admin-plan-cancel" onClick={() => setShowMembershipForm(false)}>
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            ) : (
+                                                <>
+                                                    <h4>Add Plan</h4>
+                                                    <p className="admin-plan-add-text">Create a new membership plan.</p>
+                                                    <button
+                                                        type="button"
+                                                        className="members-add-btn"
+                                                        onClick={() => {
+                                                            resetMembershipForm();
+                                                            setShowMembershipForm(true);
+                                                        }}
+                                                    >
+                                                        <i className="fa-solid fa-plus"></i>
+                                                        Add Plan
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         ) : quickTab === 'partners' ? (
                             <div className="partners-card">
                                 <div className="partners-card-header">
@@ -439,7 +869,7 @@ const AdminDashboard = () => {
                                         <thead>
                                             <tr>
                                                 <th>Partner</th>
-                                                <th>Email</th>
+                                                <th>Contact</th>
                                                 <th>Category</th>
                                                 <th>Status</th>
                                                 <th>Actions</th>
@@ -548,8 +978,8 @@ const AdminDashboard = () => {
                                         <thead>
                                             <tr>
                                                 <th>Member</th>
-                                                <th>Email</th>
                                                 <th>Type</th>
+                                                <th>Plan Amount</th>
                                                 <th>Join Date</th>
                                                 <th>Expiry</th>
                                                 <th>Remaining</th>
@@ -567,12 +997,13 @@ const AdminDashboard = () => {
                                                             <div className="member-name">
                                                                 <span>{member.name}</span>
                                                                 <small>{member.mobile}</small>
+                                                                <small>{member.email || '-'}</small>
                                                             </div>
                                                         </td>
-                                                        <td>{member.email || '-'}</td>
                                                         <td>
                                                             <span className={`member-type-text ${member.typeKey}`}>{member.type}</span>
                                                         </td>
+                                                        <td>{member.planAmount === null ? '-' : `₹${member.planAmount}`}</td>
                                                         <td>{member.joinDate}</td>
                                                         <td>{member.expiryDate}</td>
                                                         <td>{member.remaining}</td>
@@ -596,7 +1027,7 @@ const AdminDashboard = () => {
                                                 ))
                                             ) : (
                                                 <tr>
-                                                    <td colSpan="10">{loadingList ? 'Loading...' : 'No members found.'}</td>
+                                                    <td colSpan="9">{loadingList ? 'Loading...' : 'No members found.'}</td>
                                                 </tr>
                                             )}
                                         </tbody>
@@ -810,3 +1241,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+

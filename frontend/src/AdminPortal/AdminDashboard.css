@@ -498,6 +498,26 @@
     box-shadow: 0 10px 18px rgba(37, 99, 235, 0.2);
 }
 
+.members-add-btn {
+    border: none;
+    background: #22c55e;
+    color: #ffffff;
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    box-shadow: 0 10px 18px rgba(34, 197, 94, 0.2);
+}
+
+.members-close-btn {
+    background: #f1f5f9;
+    color: #334155;
+    box-shadow: none;
+}
+
 .members-table th,
 .members-table td {
     padding: 14px 12px;
@@ -656,6 +676,624 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e5e7eb;
+    border-radius: 999px;
+    transition: 0.2s;
+}
+
+.toggle-slider::before {
+    position: absolute;
+    content: '';
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    top: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #22c55e;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+}
+
+.professional-form .form-field.full-width {
+    grid-column: 1 / -1;
+}
+
+.admin-plan-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.admin-plan-shell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 320px;
+}
+
+.admin-plan-empty {
+    background: #f8fafc;
+    border: 1px dashed #cbd5f5;
+    border-radius: 16px;
+    padding: 18px;
+    color: #64748b;
+    font-weight: 600;
+    text-align: center;
+}
+
+.admin-plan-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 28px 24px 22px;
+    border-radius: 28px;
+    border: 2px solid #bfdbfe;
+    background: #ffffff;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    min-height: 520px;
+    text-align: center;
+    width: 100%;
+    max-width: 320px;
+}
+
+.admin-plan-card.tone-green {
+    border-color: #86efac;
+}
+
+.admin-plan-card.tone-blue {
+    border-color: #93c5fd;
+}
+
+.admin-plan-card.is-inactive {
+    opacity: 0.7;
+    filter: grayscale(0.25);
+}
+
+.admin-plan-badge {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f59e0b;
+    color: #ffffff;
+    padding: 5px 16px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 10px 18px rgba(245, 158, 11, 0.3);
+}
+
+.admin-plan-badge.is-hidden {
+    visibility: hidden;
+}
+
+.admin-plan-visual {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    margin-top: 6px;
+    font-size: 22px;
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+.admin-plan-visual.tone-green {
+    background: #f0fdf4;
+    color: #22c55e;
+}
+
+.admin-plan-card h4 {
+    margin: 2px 0 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.admin-plan-price {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0f172a;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.admin-plan-price span {
+    font-size: 0.95rem;
+    color: #64748b;
+    font-weight: 400;
+}
+
+.admin-plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+    width: 100%;
+    max-width: 260px;
+}
+
+.admin-plan-features li {
+    font-size: 0.92rem;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.admin-plan-features li::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 700;
+    color: #16a34a;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #eefcef;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+}
+
+.admin-plan-actions {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+    justify-content: center;
+}
+
+.admin-plan-actions.admin-plan-actions-outside {
+    margin-top: 0;
+    width: 100%;
+    max-width: 320px;
+    flex-wrap: nowrap;
+}
+
+.admin-plan-add .admin-plan-card {
+    border-style: dashed;
+    border-color: #cbd5f5;
+    background: #f8fafc;
+}
+
+.admin-plan-add .admin-plan-visual {
+    background: #e0e7ff;
+    color: #3b82f6;
+}
+
+.admin-plan-add-text {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.admin-plan-edit-form {
+    width: 100%;
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-plan-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    width: 100%;
+    text-align: left;
+}
+
+.admin-plan-edit-grid label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.admin-plan-edit-grid .edit-toggle-label {
+    align-self: center;
+}
+
+.feature-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.feature-field-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.feature-add-btn {
+    border: none;
+    background: #e0e7ff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.feature-field-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.feature-field-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.feature-field-row input {
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.feature-remove-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.admin-plan-edit-grid input,
+.admin-plan-edit-grid textarea {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.admin-plan-edit-grid input:focus,
+.admin-plan-edit-grid textarea:focus {
+    outline: none;
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    background: #ffffff;
+}
+
+.admin-plan-edit-grid .full-width {
+    grid-column: 1 / -1;
+}
+
+.admin-plan-edit-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.admin-plan-cancel {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    box-shadow: none;
+}
+
+.admin-plan-actions .members-delete-btn {
+    flex: 1 1 120px;
+    max-width: 160px;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-weight: 700;
+}
+
+.admin-plan-actions .members-delete-btn:first-child {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.18);
+}
+
+.admin-plan-actions .members-delete-btn:nth-child(2) {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+}
+
+.admin-plan-actions .members-delete-btn:last-child {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+/* Membership Plans - Card Style (Admin) */
+.members-card:has(.professional-form) .members-table thead {
+    display: none;
+}
+
+.members-card:has(.professional-form) .members-table tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 22px;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto auto auto 1fr auto;
+    align-items: start;
+    padding: 26px 22px 20px;
+    border-radius: 26px;
+    border: 2px solid #22c55e;
+    background: #ffffff;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    gap: 10px;
+    min-height: 380px;
+    text-align: center;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr::before {
+    content: '\f007';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    background: #ecfdf3;
+    color: #22c55e;
+    display: grid;
+    place-items: center;
+    margin: 6px auto 4px;
+    font-size: 22px;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td {
+    border: none;
+    padding: 0;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(1) {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin-top: 2px;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(2) {
+    font-size: 2.1rem;
+    font-weight: 900;
+    color: #0f172a;
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(3) {
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(3)::before {
+    content: '/';
+    margin-right: 4px;
+    color: #94a3b8;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(4),
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(6),
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(7) {
+    text-align: left;
+    font-size: 0.92rem;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-start;
+    margin: 2px auto;
+    width: 100%;
+    max-width: 260px;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(4)::before,
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(6)::before,
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(7)::before {
+    content: '\f00c';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: #16a34a;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #ecfdf3;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(5) {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #22c55e;
+    color: #fff;
+    padding: 5px 16px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 10px 18px rgba(34, 197, 94, 0.3);
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(6) {
+    order: 5;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(7) {
+    order: 6;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(8) {
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(8) .member-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(8) .members-delete-btn {
+    flex: 1 1 120px;
+    max-width: 160px;
+    border-radius: 999px;
+    padding: 10px 14px;
+    font-weight: 800;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(8) .members-delete-btn:first-child {
+    background: #22c55e;
+    color: #fff;
+    border: none;
+    box-shadow: 0 10px 18px rgba(34, 197, 94, 0.2);
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(8) .members-delete-btn:nth-child(2) {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(8) .members-delete-btn:last-child {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.members-card:has(.professional-form) .members-table tbody tr td:nth-child(7) .member-status {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.members-card:has(.professional-form) .professional-form {
+    border-radius: 26px;
+    border: 2px solid #22c55e;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+    padding: 22px;
+    background: #ffffff;
+    position: relative;
+}
+
+.members-card:has(.professional-form) .professional-form::before {
+    content: 'Create Plan';
+    position: absolute;
+    top: -12px;
+    left: 22px;
+    background: #22c55e;
+    color: #ffffff;
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.members-card:has(.professional-form) .professional-form.is-editing::before {
+    content: 'Update Plan';
+}
+
+.members-card:has(.professional-form) .professional-form .form-grid {
+    gap: 16px;
+}
+
+.members-card:has(.professional-form) .professional-form label {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.members-card:has(.professional-form) .professional-form input,
+.members-card:has(.professional-form) .professional-form select,
+.members-card:has(.professional-form) .professional-form textarea {
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.members-card:has(.professional-form) .professional-form input:focus,
+.members-card:has(.professional-form) .professional-form select:focus,
+.members-card:has(.professional-form) .professional-form textarea:focus {
+    outline: none;
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+    background: #ffffff;
+}
+
+.members-card:has(.professional-form) .save-btn {
+    background: #22c55e;
+    border-radius: 999px;
+    padding: 12px 26px;
+    font-weight: 800;
+    box-shadow: 0 12px 22px rgba(34, 197, 94, 0.25);
 }
 
 .members-delete-btn {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Lock, LogIn, ArrowRight, ArrowLeft, ChevronLeft, Phone } from 'lucide-react';
+import { Lock, LogIn, ArrowRight, ArrowLeft, ChevronLeft, Phone, Eye, EyeOff } from 'lucide-react';
 import './Login.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -11,6 +11,7 @@ function Login() {
     const location = useLocation();
     const [isForgot, setIsForgot] = useState(false);
     const [step, setStep] = useState(1);
+    const [showPassword, setShowPassword] = useState(false);
     
     const [formData, setFormData] = useState(() => {
         const fromState = location?.state?.mobile;
@@ -70,7 +71,7 @@ function Login() {
 
             <div className="lgn-glass-card">
                 <div className="lgn-header-section">
-                    <div className="lgn-brand-logo">Magic<span>Point</span></div>
+                    <div className="lgn-brand-logo">Trip<span>spot</span></div>
                     {!isForgot ? (
                         <p className="lgn-subtitle">Login to access your premium dashboard</p>
                     ) : (
@@ -95,7 +96,7 @@ function Login() {
                         <div className="lgn-input-wrapper">
                             <Lock className="lgn-field-icon" size={18} />
                             <input
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 name="password"
                                 className="lgn-main-input"
                                 placeholder="Password"
@@ -103,6 +104,14 @@ function Login() {
                                 onChange={handleChange}
                                 required
                             />
+                            <button
+                                type="button"
+                                className="lgn-toggle-visibility"
+                                onClick={() => setShowPassword((prev) => !prev)}
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
                         </div>
                         {errorMessage && <p style={{ color: '#dc2626' }}>{errorMessage}</p>}
                         <div className="lgn-options">

@@ -46,7 +46,10 @@ const getApiErrorMessage = (error, fallbackMessage, apiBaseUrl) => {
 function Signup() {
     const navigate = useNavigate();
     const singlePlanRef = useRef(null);
-    const [activePlan, setActivePlan] = useState(null);
+    const [membershipPlans, setMembershipPlans] = useState([]);
+    const [plansLoading, setPlansLoading] = useState(true);
+    const [plansError, setPlansError] = useState('');
+    const [activePlanId, setActivePlanId] = useState('');
     const [formData, setFormData] = useState({ 
         name: '', email: '', mobile: '', password: '', confirmPassword: '' 
     });
@@ -59,6 +62,51 @@ function Signup() {
     useEffect(() => {
         // Warm up backend on page open to reduce first submit latency (Render cold start).
         axios.get(`${API_BASE_URL}/health`, { timeout: 8000 }).catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+        const loadPlans = async () => {
+            try {
+                setPlansLoading(true);
+                setPlansError('');
+                const res = await axios.get(`${API_BASE_URL}/api/memberships`, { timeout: 10000 });
+                const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+                const normalized = list
+                    .map((plan) => ({
+                        id: plan._id,
+                        title: String(plan.title || '').trim(),
+                        price: Number(plan.price || 0),
+                        billingCycle: String(plan.billingCycle || '').trim(),
+                        durationHours: Number(plan.durationHours || 48),
+                        features: Array.isArray(plan.features) ? plan.features : [],
+                        badge: String(plan.badge || '').trim(),
+                        ctaText: String(plan.ctaText || '').trim(),
+                        sortOrder: Number(plan.sortOrder || 0),
+                        isActive: plan.isActive !== false
+                    }))
+                    .filter((plan) => plan.title)
+                    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+                if (!isMounted) return;
+                setMembershipPlans(normalized);
+                if (!activePlanId && normalized.length) {
+                    setActivePlanId('');
+                }
+            } catch (_error) {
+                if (isMounted) {
+                    setPlansError('Unable to load membership plans right now.');
+                    setMembershipPlans([]);
+                }
+            } finally {
+                if (isMounted) setPlansLoading(false);
+            }
+        };
+
+        loadPlans();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -78,7 +126,8 @@ function Signup() {
         setErrorMessage('');
         setStatusMessage('');
 
-        if (!activePlan) {
+        const hasPlans = membershipPlans.length > 0;
+        if (hasPlans && !activePlanId) {
             setErrorMessage('Please select a membership plan first.');
             return;
         }
@@ -88,16 +137,31 @@ function Signup() {
             return;
         }
 
+        const selectedPlan = membershipPlans.find((plan) => plan.id === activePlanId);
+        if (hasPlans && !selectedPlan) {
+            setErrorMessage('Selected membership plan is unavailable. Please try again.');
+            return;
+        }
+
         const payload = {
             name: formData.name.trim(),
             email: formData.email.trim(),
             mobile: formData.mobile.trim(),
             password: formData.password,
-            membershipPlan: activePlan === 'single' ? 'Single Plan' : 'Family Plan'
+            membershipPlan: hasPlans ? selectedPlan.title : 'Free Plan'
         };
 
         setIsSubmitting(true);
         try {
+            if (!hasPlans) {
+                const registerResponse = await axios.post(`${API_BASE_URL}/api/auth/signup`, payload, { timeout: 15000 });
+                localStorage.setItem('authToken', registerResponse.data.token);
+                localStorage.setItem('authUser', JSON.stringify(registerResponse.data.user));
+                setStatusMessage('Registration completed successfully.');
+                navigate('/DashboardPage', { replace: true });
+                return;
+            }
+
             const orderResponse = await postWithFallback(
                 `${API_BASE_URL}/api/auth/signup/create-order`,
                 `${API_BASE_URL}/api/auth/create-order`,
@@ -170,7 +234,7 @@ function Signup() {
                     }
                 },
                 theme: {
-                    color: activePlan === 'single' ? '#3b82f6' : '#22c55e'
+                    color: selectedPlan.title.toLowerCase().includes('family') ? '#22c55e' : '#3b82f6'
                 }
             };
 
@@ -189,7 +253,7 @@ function Signup() {
     };
 
     useEffect(() => {
-        if (!activePlan || !registrationRef.current) return;
+        if (!activePlanId || !registrationRef.current) return;
 
         registrationRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setHighlightRegistration(true);
@@ -199,7 +263,37 @@ function Signup() {
         }, 1600);
 
         return () => clearTimeout(timer);
-    }, [activePlan]);
+    }, [activePlanId]);
+
+    const handlePlanSelect = (planId) => {
+        setActivePlanId(planId);
+        setTimeout(() => {
+            if (!registrationRef.current) return;
+            registrationRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setHighlightRegistration(true);
+            const timer = setTimeout(() => {
+                setHighlightRegistration(false);
+            }, 1600);
+            return () => clearTimeout(timer);
+        }, 0);
+    };
+
+    const selectedPlan = membershipPlans.find((plan) => plan.id === activePlanId);
+    const hasPlans = membershipPlans.length > 0;
+    const getPlanTone = (plan, index) => {
+        const title = String(plan?.title || '').toLowerCase();
+        if (title.includes('family')) return { tone: 'green', icon: Users, badgeClass: 'green-badge', selectedClass: 'selected-family', visualClass: 'family-bg', buttonClass: 'green-btn' };
+        if (title.includes('single')) return { tone: 'blue', icon: User, badgeClass: '', selectedClass: 'selected-single', visualClass: 'single-bg', buttonClass: 'blue-btn' };
+        const fallback = index % 2 === 0 ? 'blue' : 'green';
+        return {
+            tone: fallback,
+            icon: fallback === 'green' ? Users : User,
+            badgeClass: fallback === 'green' ? 'green-badge' : '',
+            selectedClass: fallback === 'green' ? 'selected-family' : 'selected-single',
+            visualClass: fallback === 'green' ? 'family-bg' : 'single-bg',
+            buttonClass: fallback === 'green' ? 'green-btn' : 'blue-btn'
+        };
+    };
 
     return (
         <div className="auth-wrapper signup-scope">
@@ -218,72 +312,66 @@ function Signup() {
                 </div>
 
                 {/* Plans Section (Same as before — untouched) */}
-                <div className="plans-display-container">
+                {hasPlans && (
+                <div className={`plans-display-container ${membershipPlans.length === 1 ? 'single-plan-center' : ''}`}>
+                    {plansLoading ? (
+                        <p>Loading membership plans...</p>
+                    ) : plansError ? (
+                        <p style={{ color: '#dc2626' }}>{plansError}</p>
+                    ) : membershipPlans.length === 0 ? (
+                        <p>No active membership plans available.</p>
+                    ) : (
+                        membershipPlans.map((plan, index) => {
+                            const tone = getPlanTone(plan, index);
+                            const Icon = tone.icon;
+                            const isSelected = plan.id === activePlanId;
+                            const cycleLabel = plan.billingCycle ? `/${plan.billingCycle}` : '';
+                            const badgeText = plan.badge || '';
+                            const buttonText = plan.ctaText || `Select ${plan.title}`;
+                            return (
+                                <div
+                                    key={plan.id}
+                                    ref={index === 0 ? singlePlanRef : null}
+                                    tabIndex={-1}
+                                    className={`premium-plan-card ${isSelected ? tone.selectedClass : ''} ${!activePlanId ? 'default-point-out' : ''}`}
+                                    onClick={() => handlePlanSelect(plan.id)}
+                                >
+                                    {badgeText ? (
+                                        <div className={`plan-badge-top ${tone.badgeClass}`}>{badgeText}</div>
+                                    ) : null}
+                                    <div className={`plan-visual ${tone.visualClass}`}>
+                                        <Icon size={30} />
+                                    </div>
+                                    <h3>{plan.title}</h3>
+                                    <div className="plan-cost">₹{plan.price}<span>{cycleLabel}</span></div>
 
-                    {/* Single Plan */}
-                    <div
-                        ref={singlePlanRef}
-                        tabIndex={-1}
-                        className={`premium-plan-card ${activePlan === 'single' ? 'selected-single' : ''} ${!activePlan ? 'default-point-out' : ''}`}
-                        onClick={() => setActivePlan('single')}
-                    >
-                        <div className="plan-badge-top">Popular</div>
-                        <div className="plan-visual single-bg">
-                            <User size={30} />
-                        </div>
-                        <h3>Single Plan</h3>
-                        <div className="plan-cost">₹50<span>/2 day</span></div>
+                                    <ul className="plan-features">
+                                        {plan.features.map((feature, idx) => (
+                                            <li key={`${plan.id}-feature-${idx}`}>
+                                                <CheckCircle2 size={16}/> {feature}
+                                            </li>
+                                        ))}
+                                    </ul>
 
-                        <ul className="plan-features">
-                            <li><CheckCircle2 size={16}/> 10% discount at 500+ partners</li>
-                            <li><CheckCircle2 size={16}/> Valid for 2 Days (48 Hours)</li>
-                            <li><CheckCircle2 size={16}/> Unlimited redemptions</li>
-                            <li><CheckCircle2 size={16}/> Secure OTP verification</li>
-                            <li><CheckCircle2 size={16}/> Single user access</li>
-                        </ul>
-
-                        <button className="select-plan-btn blue-btn" onClick={() => setActivePlan('single')}>
-                            {activePlan === 'single' ? 'Selected' : 'Select Single Plan'} 
-                            <ArrowRight size={18} />
-                        </button>
-                    </div>
-
-                    {/* Family Plan */}
-                    <div
-                        className={`premium-plan-card ${activePlan === 'family' ? 'selected-family' : ''} ${!activePlan ? 'default-point-out' : ''}`}
-                        onClick={() => setActivePlan('family')}
-                    >
-                        <div className="plan-badge-top green-badge">Best Value</div>
-                        <div className="plan-visual family-bg">
-                            <Users size={30} />
-                        </div>
-                        <h3>Family Plan</h3>
-                        <div className="plan-cost">₹99<span>/2 day</span></div>
-
-                        <ul className="plan-features">
-                            <li><CheckCircle2 size={16}/> 10% discount at 500+ partners</li>
-                            <li><CheckCircle2 size={16}/> Valid for 2 Days (48 Hours)</li>
-                            <li><CheckCircle2 size={16}/> Unlimited redemptions</li>
-                            <li><CheckCircle2 size={16}/> Secure OTP verification</li>
-                            <li><CheckCircle2 size={16}/> Up to 4 family members</li>
-                            <li><CheckCircle2 size={16}/> Shared discount history</li>
-                        </ul>
-
-                        <button className="select-plan-btn green-btn" onClick={() => setActivePlan('family')}>
-                            {activePlan === 'family' ? 'Selected' : 'Select Family Plan'} 
-                            <ArrowRight size={18} />
-                        </button>
-                    </div>
+                                    <button className={`select-plan-btn ${tone.buttonClass}`} onClick={() => handlePlanSelect(plan.id)}>
+                                        {isSelected ? 'Selected' : buttonText}
+                                        <ArrowRight size={18} />
+                                    </button>
+                                </div>
+                            );
+                        })
+                    )}
                 </div>
+                )}
 
                 {/* Registration Form */}
-                {activePlan && (
+                {!plansLoading && (!hasPlans || (activePlanId && selectedPlan)) && (
                     <div
                         ref={registrationRef}
                         className={`registration-section-fade-in ${highlightRegistration ? 'registration-point-out' : ''}`}
                     >
                         <div className="section-divider">
-                            <span>Register for {activePlan === 'single' ? 'Single' : 'Family'} Membership</span>
+                            <span>Register for {hasPlans ? selectedPlan.title : 'Tripspot'} Membership</span>
                         </div>
 
                         <form className="auth-form" onSubmit={handleSubmit}>
@@ -315,16 +403,18 @@ function Signup() {
                             </div>
 
                             {/* Payment Box */}
-                            <div className={`payment-info-box ${activePlan === 'single' ? 'blue-soft' : 'green-soft'}`}>
+                            {hasPlans && (
+                            <div className={`payment-info-box ${selectedPlan.title.toLowerCase().includes('family') ? 'green-soft' : 'blue-soft'}`}>
                                 <p className="pay-tag">Secure UPI Payment</p>
                                 <div className="qr-wrapper">
-                                    <QrCode size={120} color={activePlan === 'single' ? '#3b82f6' : '#22c55e'} />
-                                    <p className="pay-amount">Pay ₹{activePlan === 'single' ? '50' : '99'}</p>
+                                    <QrCode size={120} color={selectedPlan.title.toLowerCase().includes('family') ? '#22c55e' : '#3b82f6'} />
+                                    <p className="pay-amount">Pay ₹{selectedPlan.price}</p>
                                 </div>
                                 <div className="payment-icons">
                                     <CreditCard size={18}/> Trusted Payment Gateways
                                 </div>
                             </div>
+                            )}
 
                             {errorMessage && <p style={{ color: '#dc2626', marginTop: '10px' }}>{errorMessage}</p>}
                             {statusMessage && <p style={{ color: '#059669', marginTop: '10px' }}>{statusMessage}</p>}
@@ -332,9 +422,11 @@ function Signup() {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className={`final-submit-btn ${activePlan === 'single' ? 'bg-blue' : 'bg-green'}`}
+                                className={`final-submit-btn ${hasPlans && selectedPlan.title.toLowerCase().includes('family') ? 'bg-green' : 'bg-blue'}`}
                             >
-                                {isSubmitting ? 'Processing Payment...' : 'Complete Registration & Pay'}
+                                {isSubmitting
+                                    ? (hasPlans ? 'Processing Payment...' : 'Submitting...')
+                                    : (hasPlans ? 'Complete Registration & Pay' : 'Complete Registration')}
                             </button>
                         </form>
                     </div>

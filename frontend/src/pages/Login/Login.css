@@ -21,19 +21,19 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #411bbf;
+    color: #1e293b;
     font-weight: 700;
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
     z-index: 10;
 }
 
 .lgn-back-home-btn:hover {
-    background: #411bbf;
-    color: white;
-    transform: translateX(-3px);
+    background: #f1f5f9;
+    color: #0f172a;
+    transform: none;
 }
 
 .lgn-glass-card {
@@ -107,6 +107,34 @@
     background: transparent;
     font-size: 1rem;
     color: #1e293b;
+}
+
+.lgn-toggle-visibility {
+    position: absolute;
+    right: 14px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.lgn-toggle-visibility:hover {
+    color: #1e293b;
+}
+
+/* Hide number input spinners */
+.lgn-main-input[type="number"]::-webkit-outer-spin-button,
+.lgn-main-input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.lgn-main-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .lgn-options {
@@ -192,8 +220,11 @@
         align-items: center; /* मोबाईलवर सुद्धा उभे सेंटर */
     }
     .lgn-glass-card {
-        padding: 40px 20px;
-    }
+        padding: 30px 18px;
+    
+    background: transparent;
+    box-shadow: none;
+    border: none;}
     .lgn-back-home-btn {
         top: 15px;
         left: 15px;
@@ -201,3 +232,4 @@
         font-size: 0.75rem;
     }
 }
+

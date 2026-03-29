@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema(
         membershipPlan: {
             type: String,
             required: true,
-            enum: ['Single Plan', 'Family Plan']
+            enum: ['Single Plan', 'Family Plan', 'Free Plan']
         },
         membershipActivatedAt: {
             type: Date

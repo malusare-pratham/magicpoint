@@ -15,9 +15,33 @@ const membershipSchema = new mongoose.Schema(
             required: true,
             min: 0
         },
+        billingCycle: {
+            type: String,
+            trim: true,
+            default: ''
+        },
+        durationHours: {
+            type: Number,
+            min: 1,
+            default: 48
+        },
         features: {
             type: [String],
             default: []
+        },
+        badge: {
+            type: String,
+            trim: true,
+            default: ''
+        },
+        ctaText: {
+            type: String,
+            trim: true,
+            default: ''
+        },
+        sortOrder: {
+            type: Number,
+            default: 0
         },
         isActive: {
             type: Boolean,
