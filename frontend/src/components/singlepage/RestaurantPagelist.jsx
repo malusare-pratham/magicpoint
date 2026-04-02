@@ -131,8 +131,15 @@ const RestaurantPagelist = () => {
     return raw ? decodeURIComponent(raw) : '';
   }, [location.search]);
 
-  const pageLabels = useMemo(() => {
+  const normalizeCategory = (value) => String(value || '').trim().toLowerCase();
+
+  const effectiveCategory = useMemo(() => {
     const category = String(categoryParam || '').trim();
+    return category || 'Food & Dining';
+  }, [categoryParam]);
+
+  const pageLabels = useMemo(() => {
+    const category = String(effectiveCategory || '').trim();
     if (!category) {
       return {
         title: 'Restaurants Near You',
@@ -175,7 +182,7 @@ const RestaurantPagelist = () => {
       cta: `Check out all the ${category.toLowerCase()}`,
       searchPlaceholder: `Search ${category.toLowerCase()}...`
     };
-  }, [categoryParam]);
+  }, [effectiveCategory]);
 
   const restaurants = useMemo(
     () =>
@@ -229,9 +236,32 @@ const RestaurantPagelist = () => {
     const hasPetData = restaurants.some((item) => item.petFriendly);
     const hasOutdoorData = restaurants.some((item) => item.outdoorSeating);
     const query = String(searchTerm || '').trim().toLowerCase();
+    const normalizedEffectiveCategory = normalizeCategory(effectiveCategory);
+
+    const isFoodDiningFilter =
+      normalizedEffectiveCategory === normalizeCategory('Food & Dining');
+    const isFoodType = (value) => {
+      const v = String(value || '').toLowerCase();
+      return v.includes('veg') || v.includes('non') || v.includes('both');
+    };
 
     return restaurants.filter((item) => {
-      if (categoryParam && String(item.businessCategory || '').trim() !== categoryParam) return false;
+      const normalizedItemCategory = normalizeCategory(item.businessCategory);
+
+      if (normalizedEffectiveCategory) {
+        if (isFoodDiningFilter) {
+          if (!normalizedItemCategory) return false;
+          if (
+            !normalizedItemCategory.includes('food') &&
+            !normalizedItemCategory.includes('dining')
+          ) {
+            return false;
+          }
+          if (!isFoodType(item.foodType)) return false;
+        } else if (normalizedItemCategory !== normalizedEffectiveCategory) {
+          return false;
+        }
+      }
       if (activeFilters.rating45 && Number(item.rating) < 4.5) return false;
       if (activeFilters.petFriendly && hasPetData && !item.petFriendly) return false;
       if (activeFilters.outdoorSeating && hasOutdoorData && !item.outdoorSeating) return false;
@@ -243,7 +273,7 @@ const RestaurantPagelist = () => {
       }
       return true;
     });
-  }, [restaurants, activeFilters, searchTerm, categoryParam]);
+  }, [restaurants, activeFilters, searchTerm, effectiveCategory]);
 
 
   const activeFilterCount = useMemo(

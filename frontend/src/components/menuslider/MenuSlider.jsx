@@ -14,9 +14,14 @@ const MenuSlider = () => {
 
   const menuItems = Object.entries(assetImages)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, mod]) => ({
-      img: typeof mod === "string" ? mod : mod?.default || "",
-    }))
+    .map(([path, mod]) => {
+      const filename = String(path || "").split("/").pop() || "";
+      const name = decodeURIComponent(filename.replace(/\.[^.]+$/, "")).trim();
+      return {
+        img: typeof mod === "string" ? mod : mod?.default || "",
+        name,
+      };
+    })
     .filter((item) => item.img);
 
   const scroll = (direction) => {
@@ -26,6 +31,10 @@ const MenuSlider = () => {
       left: direction === "left" ? -scrollAmount : scrollAmount,
       behavior: "smooth",
     });
+  };
+
+  const handleCardClick = () => {
+    navigate("/restaurant-list");
   };
 
   return (
@@ -45,8 +54,15 @@ const MenuSlider = () => {
             <div
               key={index}
               className="menu-card"
-              onClick={() => navigate("/restaurant-list")}
-              style={{ cursor: "pointer" }}
+              role="button"
+              tabIndex={0}
+              onClick={handleCardClick}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleCardClick();
+                }
+              }}
             >
               <div className="menu-image-wrapper">
                 <img src={item.img} alt="cuisine" />

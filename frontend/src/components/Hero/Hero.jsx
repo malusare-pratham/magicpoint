@@ -1,7 +1,7 @@
 import React from "react";
 import "./Hero.css";
 
-function Hero() {
+function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime = "" }) {
   return (
     <section className="magic-hero">
       <div className="hero-svg-bg"></div>
@@ -15,12 +15,32 @@ function Hero() {
             Explore <span className="city-name">Panchgani & Mahabaleshwar</span>
           </h1>
           
-          <div className="offer-highlight-box">
-             <div className="discount-main">
-                GET FLAT <span className="big-percent">10%</span> OFF
-             </div>
-             <p className="offer-sub">ON HOTELS • FOOD • ACTIVITIES • SHOPS</p>
+                              <div className="offer-highlight-box">
+            <div className="discount-main">
+              GET FLAT <span className="big-percent">10%</span> OFF
+            </div>
+            <p className="offer-sub">ON HOTELS • FOOD • ACTIVITIES • SHOPS</p>
+            {showMembershipBox && (
+              <div className="hero-membership-footer hero-membership-footer--inside">
+                <div className="hero-footer-info">
+                  <i className="fa-regular fa-calendar-check"></i> VALID UNTIL {validUntilLabel || "Not Available"}
+                </div>
+                <div className="hero-timer-box">
+                  <i className="fa-solid fa-clock"></i> REMAINING: {remainingTime || "00hr-00m-00s"}
+                </div>
+              </div>
+            )}
           </div>
+          {showMembershipBox && (
+            <div className="hero-membership-footer hero-membership-footer--outside">
+              <div className="hero-footer-info">
+                <i className="fa-regular fa-calendar-check"></i> VALID UNTIL {validUntilLabel || "Not Available"}
+              </div>
+              <div className="hero-timer-box">
+                <i className="fa-solid fa-clock"></i> REMAINING: {remainingTime || "00hr-00m-00s"}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="search-wrapper">
@@ -41,3 +61,5 @@ function Hero() {
 }
 
 export default Hero;
+
+

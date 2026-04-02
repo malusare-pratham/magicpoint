@@ -44,16 +44,50 @@
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
     border: 2px dashed #ffc107;
-    padding: 20px;
+    padding: 10px;
     border-radius: 20px;
     display: inline-block;
-    margin: 25px 0;
+    margin: 4px 0;
     animation: pulse 2s infinite;
 }
 
 .discount-main { font-size: 28px; font-weight: 900; }
 .big-percent { color: #ffc107; font-size: 45px; text-shadow: 0 0 15px rgba(255, 193, 7, 0.5); }
 .offer-sub { font-size: 14px; font-weight: 700; letter-spacing: 2px; margin-top: 5px; color: #eef2ff; }
+.hero-membership-footer {
+    margin-top: 6px;
+    border-top: none;
+    padding-top: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    font-size: 14px;
+    font-weight: 700;
+}
+.hero-footer-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.2;
+}
+.hero-timer-box {
+    color: #ffeb3b;
+    font-size: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 3px 8px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.2;
+}
+.hero-membership-footer--inside {
+    display: none;
+}
+.hero-membership-footer--outside {
+    display: flex;
+}
 
 @keyframes pulse {
     0% { transform: scale(1); }
@@ -66,7 +100,7 @@
 .hero-title { font-size: clamp(32px, 6vw, 55px); font-weight: 900; }
 .city-name { color: #fff; text-decoration: underline; text-decoration-color: #ff3f6c; }
 
-.search-wrapper { display: flex; justify-content: center; margin-bottom: 25px; }
+.search-wrapper { display: flex; justify-content: center; margin-top: 14px; margin-bottom: 25px; }
 
 .single-search-bar { 
     background: #fff; 
@@ -105,7 +139,7 @@
     border-bottom-right-radius: 50% 15px;
   }
   
-  .search-wrapper { margin-bottom: 15px; width: 95%; }
+  .search-wrapper { margin-top: 12px; margin-bottom: 15px; width: 95%; }
   .single-search-bar { 
     padding: 4px 6px; 
     border-radius: 50px; 
@@ -120,10 +154,35 @@
     border-radius: 50px; 
   }
 
-  .offer-highlight-box { width: 95%; padding: 15px; }
+  .hero-title { margin-bottom: 20px; line-height: 1.16; }
+  .offer-highlight-box { width: 92%; padding: 6px; }
   .discount-main { font-size: 20px; }
-  .big-percent { font-size: 32px; }
+  .big-percent { font-size: 31px; }
+  .offer-sub { font-size: 12.75px; letter-spacing: 0.7px; white-space: nowrap; }
+  .offer-highlight-box { margin: 10px 0; }
+  .hero-membership-footer { margin-top: 6px; padding-top: 6px; }
+  .hero-membership-footer {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    font-size: 14px;
+    gap: 6px;
+  }
+  .hero-timer-box { font-size: 14px; }
+  .hero-membership-footer--inside { display: none; }
+  .hero-membership-footer--outside {
+    display: flex;
+    margin-top: 10px;
+    padding-top: 10px;
+    margin-bottom: 18px;
+  }
   
   .hero-curve-bottom { height: 100px; width: 220%; bottom: -1px; }
-  .hero-stats { gap: 10px; font-size: 11px; margin-bottom: 20px; }
+  .hero-stats { gap: 10px; font-size: 13px; margin-bottom: 20px; }
 }/*old max*/
+
+@media (min-width: 601px) {
+  .hero-membership-footer--outside {
+    margin-bottom: 28px;
+  }
+}

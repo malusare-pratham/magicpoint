@@ -83,9 +83,13 @@ const MainContent = () => {
       }));
   }, [partners, visibleCategory]);
 
+  const goToLogin = () => navigate('/login');
+
   return (
     <div className="mc-main-container">
-      <h1 className="mc-main-top-heading">Lowest prices for your favorite Tripspotgos</h1>
+      <h1 className="mc-main-top-heading">
+        Lowest prices for your favorite Tripspotgos
+      </h1>
 
       <div className="mc-tab-row">
         {categories.map((cat) => (
@@ -103,13 +107,13 @@ const MainContent = () => {
       <section className="mc-category-section">
         <div className="mc-section-header">
           <h2 className="mc-section-title">{visibleCategory.title}</h2>
-          <button type="button" className="mc-view-all" onClick={() => navigate('/signup')}>View All</button>
+          <button type="button" className="mc-view-all" onClick={goToLogin}>View All</button>
         </div>
 
         <div className="mc-sliding-row">
           {visibleItems.length > 0 ? (
             visibleItems.map((item) => (
-              <div key={item.id} className="mc-deal-card" onClick={() => navigate('/signup')}>
+              <div key={item.id} className="mc-deal-card" onClick={goToLogin}>
                 <div className="mc-image-container">
                   <div className="mc-discount-badge">
                     <strong>{item.discount}%</strong>

@@ -36,12 +36,14 @@ const Benefits = () => {
         }
     ];
 
+    const goToLogin = () => navigate('/login');
+
     return (
         <section className="benefits-container">
             <h2 className="benefits-title">Membership Benefits</h2>
             <div className="benefits-grid">
                 {benefitsData.map((item) => (
-                    <div className="benefit-card" key={item.id} onClick={() => navigate('/signup')}>
+                    <div className="benefit-card" key={item.id} onClick={goToLogin}>
                         <div className={`benefit-icon-box ${item.colorClass}`}>
                             {item.icon}
                         </div>

@@ -60,10 +60,20 @@
     cursor: pointer;
     transition: transform 0.3s ease;
     background: transparent;
+    border: none;
+    outline: none;
 }
 
 .menu-card:hover {
-    transform: scale(1.08);
+    transform: translateY(-2px);
+}
+
+.menu-card:hover .menu-image-wrapper img {
+    transform: scale(1.04);
+}
+
+.menu-image-wrapper img {
+    transition: transform 0.25s ease;
 }
 
 .menu-image-wrapper {
@@ -144,7 +154,7 @@
     }
 
     .menu-card:active {
-        transform: scale(1.06);
+        transform: none;
     }
 
     .menu-image-wrapper img {

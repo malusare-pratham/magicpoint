@@ -36,7 +36,7 @@ function Navbar({ isAuthenticated = false, onLogout, showMobileMenu = true, fixe
       if (onLogout) onLogout();
       return;
     }
-    navigate("/signup");
+    navigate("/login");
   };
 
   return (

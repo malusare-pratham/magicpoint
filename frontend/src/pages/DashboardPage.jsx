@@ -5,6 +5,7 @@ import "./DashboardPage.css";
 import MainPageContent from "../components/Mainpage/MainPageContent";
 import Footer from "../components/Footer/Footer";
 import Navbar from "../components/Navbar/Navbar";
+import Hero from "../components/Hero/Hero";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -48,6 +49,7 @@ const DashboardPage = () => {
   }, [navigate]);
 
   const membershipPlan = user?.membershipPlan || "Single Plan";
+  const isFreePlan = /free/i.test(membershipPlan);
   const membershipExpiresAtMs = useMemo(() => {
     const parseMs = (value) => {
       if (!value) return null;
@@ -121,59 +123,63 @@ const DashboardPage = () => {
     <div className="pg-root-combined">
       <Navbar isAuthenticated onLogout={handleLogout} />
 
-      <section className="mg-hero-combined">
-        <div className="mg-hero-svg-bg"></div>
-        
-        <div className="mg-hero-inner">
-          <div className="mg-hero-content">
-            <div className="mg-membership-card-combined">
-               <div className="mg-card-header">
-                  <span className="mg-premium-badge">
-                    <i className="fa-solid fa-crown"></i> PREMIUM
-                  </span>
-                  <span className="mg-active-status">
-                    <span className="mg-dot-pulse"></span> ACTIVE MEMBERSHIP
-                  </span>
-               </div>
-               
-               <div className="mg-card-body">
-                  <span className="mg-plan-text">{membershipPlan.toUpperCase()}</span>
-                  <span className="mg-divider">|</span>
-                  <span className="mg-price-main">₹50</span>
-                  <span className="mg-price-sub">/ 2 days</span>
-               </div>
-               
-               <div className="mg-card-footer">
-                  <div className="mg-footer-info">
-                    <i className="fa-regular fa-calendar-check"></i> VALID UNTIL {validUntilLabel}
-                  </div>
-                  <div className="mg-timer-box">
-                    <i className="fa-solid fa-clock"></i> REMAINING: {remainingTime}
-                  </div>
-               </div>
+      {isFreePlan ? (
+        <Hero showMembershipBox validUntilLabel={validUntilLabel} remainingTime={remainingTime} />
+      ) : (
+        <section className="mg-hero-combined">
+          <div className="mg-hero-svg-bg"></div>
+          
+          <div className="mg-hero-inner">
+            <div className="mg-hero-content">
+              <div className="mg-membership-card-combined">
+                 <div className="mg-card-header">
+                    <span className="mg-premium-badge">
+                      <i className="fa-solid fa-crown"></i> PREMIUM
+                    </span>
+                    <span className="mg-active-status">
+                      <span className="mg-dot-pulse"></span> ACTIVE MEMBERSHIP
+                    </span>
+                 </div>
+                 
+                 <div className="mg-card-body">
+                    <span className="mg-plan-text">{membershipPlan.toUpperCase()}</span>
+                    <span className="mg-divider">|</span>
+                    <span className="mg-price-main">₹50</span>
+                    <span className="mg-price-sub">/ 2 days</span>
+                 </div>
+                 
+                 <div className="mg-card-footer">
+                    <div className="mg-footer-info">
+                      <i className="fa-regular fa-calendar-check"></i> VALID UNTIL {validUntilLabel}
+                    </div>
+                    <div className="mg-timer-box">
+                      <i className="fa-solid fa-clock"></i> REMAINING: {remainingTime}
+                    </div>
+                 </div>
+              </div>
+            </div>
+
+            <div className="mg-search-wrapper">
+              <div className="mg-search-bar">
+                <i className="fa-solid fa-magnifying-glass mg-search-icon"></i>
+                <input type="text" placeholder="Search hotels, food, strawberries..." />
+                <button className="mg-search-btn">Get Deals</button> 
+              </div>
+            </div>
+
+            <div className="mg-hero-stats">
+                <span><i className="fa-solid fa-bolt"></i> Instant Discounts</span>
+                <span><i className="fa-solid fa-shield-halved"></i> 100% Verified</span>
             </div>
           </div>
 
-          <div className="mg-search-wrapper">
-            <div className="mg-search-bar">
-              <i className="fa-solid fa-magnifying-glass mg-search-icon"></i>
-              <input type="text" placeholder="Search hotels, food, strawberries..." />
-              <button className="mg-search-btn">Get Deals</button> 
-            </div>
+          <div className="mg-hero-curve">
+             <svg viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M0 100L1440 100L1440 0C1440 0 1080 80 720 80C360 80 0 0 0 0L0 100Z" fill="#ffffff"/>
+             </svg>
           </div>
-
-          <div className="mg-hero-stats">
-              <span><i className="fa-solid fa-bolt"></i> Instant Discounts</span>
-              <span><i className="fa-solid fa-shield-halved"></i> 100% Verified</span>
-          </div>
-        </div>
-
-        <div className="mg-hero-curve">
-           <svg viewBox="0 0 1440 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0 100L1440 100L1440 0C1440 0 1080 80 720 80C360 80 0 0 0 0L0 100Z" fill="#ffffff"/>
-           </svg>
-        </div>
-      </section>
+        </section>
+      )}
       <MainPageContent/>
       <Footer/>
     </div>
@@ -183,3 +189,4 @@ const DashboardPage = () => {
 export default DashboardPage;
 
 //old
+

@@ -36,12 +36,14 @@ const Categories = () => {
         }
     ];
 
+    const goToLogin = () => navigate('/login');
+
     return (
         <section className="categories-container">
             <h2 className="categories-title">Discount Categories</h2>
             <div className="categories-grid">
                 {categoriesData.map((cat) => (
-                    <div className={`category-card ${cat.colorClass}`} key={cat.id} onClick={() => navigate('/signup')}>
+                    <div className={`category-card ${cat.colorClass}`} key={cat.id} onClick={goToLogin}>
                         <div className="cat-icon-wrapper">
                             {cat.icon}
                         </div>

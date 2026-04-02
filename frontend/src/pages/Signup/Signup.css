@@ -324,8 +324,7 @@
         flex-direction: column;
     }
     .signup-scope .back-btn  {
-        align-self: flex-start;
-        margin-bottom: 10px;
+        display: none;
     }
     .signup-scope .plans-display-container  { grid-template-columns: 1fr; }
     .signup-scope .auth-card  { padding: 30px 20px; }

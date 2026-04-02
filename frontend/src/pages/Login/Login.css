@@ -226,10 +226,7 @@
     box-shadow: none;
     border: none;}
     .lgn-back-home-btn {
-        top: 15px;
-        left: 15px;
-        padding: 8px 12px;
-        font-size: 0.75rem;
+        display: none;
     }
 }
 
