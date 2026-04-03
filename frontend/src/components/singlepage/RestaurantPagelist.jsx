@@ -272,7 +272,7 @@ const RestaurantPagelist = () => {
           const reviewStats = reviewStatsById[partnerId];
           const partnerCoords = normalizePartnerCoords(partner);
           const computedDistance = coords && partnerCoords ? haversineKm(coords, partnerCoords) : null;
-          const distanceLabel = formatDistanceKm(computedDistance) || partner?.distance || '1.2 km';
+          const distanceLabel = partner?.distance || formatDistanceKm(computedDistance) || '1.2 km';
           const ratingValue = Number(
             reviewStats?.count
               ? reviewStats.avg

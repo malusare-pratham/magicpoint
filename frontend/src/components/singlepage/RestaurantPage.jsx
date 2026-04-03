@@ -577,7 +577,6 @@ const RestaurantPage = () => {
 
   const handleLikeReview = async (reviewId, reviewPartnerId) => {
     const effectivePartnerId = reviewPartnerId || partnerId;
-    console.log('like-click', { reviewId, partnerId: effectivePartnerId });
     if (!reviewId || !effectivePartnerId) return;
     if (localLikes[reviewId]) return;
     if (!likeUserId) {

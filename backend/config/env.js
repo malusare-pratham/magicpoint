@@ -41,6 +41,7 @@ const config = {
     mongoUri: forceDbName(process.env.MONGO_URI || `mongodb://127.0.0.1:27017/${enforcedDbName}`, enforcedDbName),
     jwtSecret: process.env.JWT_SECRET || 'change-me-in-production',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    orsApiKey: process.env.ORS_API_KEY || '',
     corsOrigins,
     mongoMinPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE) || 5,
     mongoMaxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE) || 20

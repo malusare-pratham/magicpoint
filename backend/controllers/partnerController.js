@@ -1,4 +1,6 @@
 const Partner = require('../models/Partner');
+const axios = require('axios');
+const { orsApiKey } = require('../config/env');
 
 const buildImageUrl = (req, rawPath) => {
     if (!rawPath) return null;
@@ -52,8 +54,67 @@ exports.getNearbyPartners = async (req, res) => {
             }
         ]);
 
-        const shaped = results.map((partner) => {
-            const distanceKm = Number(partner.distanceMeters || 0) / 1000;
+        let roadDistances = null;
+        if (orsApiKey && results.length > 0) {
+            try {
+                const origin = [Number(lng), Number(lat)];
+                const destinations = results.map((partner) => {
+                    const coords = partner?.location?.coordinates || [];
+                    return [Number(coords[0]), Number(coords[1])];
+                });
+
+                const isValidCoord = (coord) =>
+                    Array.isArray(coord) &&
+                    coord.length >= 2 &&
+                    Number.isFinite(coord[0]) &&
+                    Number.isFinite(coord[1]) &&
+                    Math.abs(coord[1]) <= 90 &&
+                    Math.abs(coord[0]) <= 180;
+
+                if (isValidCoord(origin) && destinations.every(isValidCoord)) {
+                    const batchSize = 40;
+                    const collected = [];
+
+                    for (let i = 0; i < destinations.length; i += batchSize) {
+                        const batch = destinations.slice(i, i + batchSize);
+                        const locations = [origin, ...batch];
+                        const response = await axios.post(
+                            'https://api.openrouteservice.org/v2/matrix/driving-car',
+                            {
+                                locations,
+                                sources: [0],
+                                destinations: batch.map((_, idx) => idx + 1),
+                                metrics: ['distance']
+                            },
+                            {
+                                headers: {
+                                    Authorization: orsApiKey,
+                                    'Content-Type': 'application/json'
+                                },
+                                timeout: 8000
+                            }
+                        );
+                        const distances = response?.data?.distances?.[0] || [];
+                        const normalized = distances.map((meters) =>
+                            Number.isFinite(meters) ? meters : null
+                        );
+                        collected.push(...normalized);
+                    }
+
+                    if (collected.length === destinations.length) {
+                        roadDistances = collected;
+                    }
+                }
+            } catch (_error) {
+                roadDistances = null;
+            }
+        }
+
+        const shaped = results.map((partner, index) => {
+            const straightMeters = Number(partner.distanceMeters || 0);
+            const roadMeters = roadDistances?.[index];
+            const distanceMeters = roadMeters ?? straightMeters;
+            const distanceKm = Number(distanceMeters || 0) / 1000;
             return {
                 ...partner,
                 imageUrl: buildImageUrl(req, partner.resImage),
@@ -66,4 +127,3 @@ exports.getNearbyPartners = async (req, res) => {
         return res.status(500).json({ message: 'Error fetching nearby partners', error: error.message });
     }
 };
-

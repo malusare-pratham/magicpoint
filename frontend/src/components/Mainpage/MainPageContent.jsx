@@ -201,9 +201,8 @@ const MainPageContent = () => {
       try {
         const parsed = JSON.parse(savedCoords);
         if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng)) {
-          if (savedUseGps !== "false") {
-            setCoords({ lat: parsed.lat, lng: parsed.lng });
-          }
+          // Always honor saved coords; geolocation will overwrite only if GPS is on.
+          setCoords({ lat: parsed.lat, lng: parsed.lng });
         }
       } catch (_error) {
         // ignore
@@ -419,7 +418,7 @@ const MainPageContent = () => {
           const reviewStats = reviewStatsById[partnerId];
           const partnerCoords = normalizePartnerCoords(partner);
           const computedDistance = coords && partnerCoords ? haversineKm(coords, partnerCoords) : null;
-          const distanceLabel = formatDistanceKm(computedDistance) || partner.distance || "1.2 km";
+          const distanceLabel = partner.distance || formatDistanceKm(computedDistance) || "1.2 km";
           const ratingValue = Number(
             reviewStats?.count
               ? reviewStats.avg
