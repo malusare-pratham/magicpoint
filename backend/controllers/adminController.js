@@ -170,6 +170,12 @@ exports.addPartner = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(partnerData.password, salt);
 
+        const latitude = toNumberOrUndefined(partnerData.latitude);
+        const longitude = toNumberOrUndefined(partnerData.longitude);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+            return res.status(400).json({ message: 'Latitude and longitude are required' });
+        }
+
         const allowedPayload = {
             restaurantName: partnerData.restaurantName,
             ownerName: partnerData.ownerName,
@@ -181,7 +187,11 @@ exports.addPartner = async (req, res) => {
             area: partnerData.area,
             totalDiscount: Number(partnerData.totalDiscount || 0),
             customerDiscount: Number(partnerData.customerDiscount || 0),
-            platformCommission: Number(partnerData.platformCommission || 0)
+            platformCommission: Number(partnerData.platformCommission || 0),
+            location: {
+                type: 'Point',
+                coordinates: [longitude, latitude]
+            }
         };
 
         if (req.file) {

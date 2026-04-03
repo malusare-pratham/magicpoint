@@ -29,6 +29,7 @@ const RestaurantPagelist = () => {
   const [partners, setPartners] = useState([]);
   const [partnerInfoById, setPartnerInfoById] = useState({});
   const [reviewStatsById, setReviewStatsById] = useState({});
+  const [coords, setCoords] = useState(null);
   const [activeFilters, setActiveFilters] = useState({
     rating45: false,
     petFriendly: false,
@@ -40,18 +41,32 @@ const RestaurantPagelist = () => {
   const reviewStatsRef = React.useRef({});
 
   useEffect(() => {
-    const fetchPartners = async () => {
+    const savedCoords = localStorage.getItem('tsg_user_coords');
+    if (savedCoords) {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/admin/partners`);
-        setPartners(Array.isArray(response?.data) ? response.data : []);
+        const parsed = JSON.parse(savedCoords);
+        if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng)) {
+          setCoords({ lat: parsed.lat, lng: parsed.lng });
+          return;
+        }
       } catch (_error) {
-        setPartners([]);
+        // ignore
       }
-    };
+    }
 
-    fetchPartners();
-    const refreshTimer = setInterval(fetchPartners, 10000);
-    return () => clearInterval(refreshTimer);
+    if (!navigator?.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords || {};
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+          const nextCoords = { lat: latitude, lng: longitude };
+          setCoords(nextCoords);
+          localStorage.setItem('tsg_user_coords', JSON.stringify(nextCoords));
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+    );
   }, []);
 
   useEffect(() => {
@@ -137,6 +152,33 @@ const RestaurantPagelist = () => {
     const category = String(categoryParam || '').trim();
     return category || 'Food & Dining';
   }, [categoryParam]);
+
+  useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        if (coords) {
+          const response = await axios.get(`${API_BASE_URL}/api/partners/nearby`, {
+            params: {
+              lat: coords.lat,
+              lng: coords.lng,
+              radius: 15000,
+              category: effectiveCategory
+            }
+          });
+          setPartners(Array.isArray(response?.data) ? response.data : []);
+        } else {
+          const response = await axios.get(`${API_BASE_URL}/api/admin/partners`);
+          setPartners(Array.isArray(response?.data) ? response.data : []);
+        }
+      } catch (_error) {
+        setPartners([]);
+      }
+    };
+
+    fetchPartners();
+    const refreshTimer = setInterval(fetchPartners, 10000);
+    return () => clearInterval(refreshTimer);
+  }, [coords, effectiveCategory]);
 
   const pageLabels = useMemo(() => {
     const category = String(effectiveCategory || '').trim();

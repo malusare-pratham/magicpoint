@@ -37,6 +37,7 @@
   width: 100%;
   max-width: 1100px;
   margin-bottom: 20px; 
+  padding-top: 0;
 }
 
 /* --- 10% OFF Highlight Box --- */
@@ -113,9 +114,209 @@
     box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
 }
 .search-icon-fa { color: #888; margin: 0 10px; }
-.single-search-bar input { flex: 1; border: none; outline: none; padding: 12px; font-size: 16px; color: #333; }
+.single-search-bar input { flex: 1; border: none; outline: none; padding: 12px; font-size: 16px; color: #6b7280; background: transparent; }
+.single-search-bar input::placeholder { color: #9ca3af; font-weight: 500; font-size: 16px; }
 .get-deals-btn { background: #411bbf; color: #fff; border: none; padding: 12px 35px; border-radius: 8px; font-weight: 700; cursor: pointer; }
 .hero-stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 60px; font-size: 14px; opacity: 0.9; }
+
+@media (min-width: 1024px) {
+  .single-search-bar { 
+    padding: 5px 10px;
+  }
+  .single-search-bar input {
+    padding: 8px;
+  }
+  .get-deals-btn {
+    padding: 8px 28px;
+  }
+}
+
+.hero-search-bar {
+    gap: 6px;
+}
+
+.hero-mobile-location {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: #ffffff;
+    border-radius: 0;
+    padding: 0;
+    margin: 0 0 16px;
+    box-shadow: none;
+    width: fit-content;
+    align-self: flex-start;
+    text-align: left;
+    position: relative;
+    z-index: 200;
+}
+
+.hero-mobile-location-icon {
+    color: #ffffff;
+    font-size: 15px;
+    margin-right: 0;
+}
+
+.hero-mobile-location-select {
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    font-size: 13px;
+    color: #ffffff;
+    outline: none;
+    appearance: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hero-mobile-location-trigger {
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.hero-location-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: none;
+    font-weight: 700;
+    position: relative;
+    flex: 0 0 240px;
+}
+
+.hero-location-icon {
+    color: #9ca3af;
+    font-size: 16px;
+}
+
+.hero-location-input {
+    border: none;
+    background: transparent;
+    font-weight: 700;
+    color: #6b7280;
+    font-size: 15px;
+    width: 100%;
+    text-align: left;
+    outline: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.hero-location-input::placeholder {
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+.hero-location-caret {
+    display: none;
+}
+
+.hero-location-caret.open {
+    display: none;
+}
+
+.hero-search-divider {
+    width: 1px;
+    height: 32px;
+    background: #d1d5db;
+    margin: 0 2px;
+}
+
+.hero-location-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 280px;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 10px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    border: 1px solid #e2e8f0;
+    z-index: 120;
+}
+
+.hero-location-panel--mobile {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 220px;
+}
+
+.hero-detect-btn {
+    width: 100%;
+    border: 1.5px solid #ff3f6c;
+    color: #111827;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 11px 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.hero-detect-btn:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.hero-location-label {
+    margin-top: 12px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+    letter-spacing: 0.08em;
+}
+
+.hero-location-list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 130px;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.hero-location-item {
+    border: none;
+    background: #ffffff;
+    text-align: left;
+    padding: 8px 6px;
+    font-weight: 700;
+    color: #0f172a;
+    cursor: pointer;
+}
+
+.hero-location-item:hover {
+    color: #4f46e5;
+}
+
+.hero-location-empty {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 600;
+    padding: 8px 6px;
+}
+
+.hero-location-error {
+    margin-top: 10px;
+    color: #b91c1c;
+    font-size: 12px;
+    font-weight: 600;
+}
 
 /* ३. बाहेरच्या बाजूचा कर्व्ह (Inverted Curve Effect) */
 .hero-curve-bottom {
@@ -134,10 +335,12 @@
 @media (max-width: 600px) {
   .magic-hero { 
     min-height: 450px;
-    padding-top: 30px;
-    border-bottom-left-radius: 50% 15px;
-    border-bottom-right-radius: 50% 15px;
+    padding-top: 12px;
+    overflow: hidden;
+    border-bottom-left-radius: 50% 20px;
+    border-bottom-right-radius: 50% 20px;
   }
+
   
   .search-wrapper { margin-top: 12px; margin-bottom: 15px; width: 95%; }
   .single-search-bar { 
@@ -147,6 +350,16 @@
   .single-search-bar input { 
     padding: 8px; 
     font-size: 13px; 
+  }
+  .hero-search-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hero-location-select {
+    display: none;
+  }
+  .hero-search-divider {
+    display: none;
   }
   .get-deals-btn { 
     padding: 8px 15px; 
@@ -176,13 +389,35 @@
     padding-top: 10px;
     margin-bottom: 18px;
   }
+
+  .hero-mobile-location {
+    display: flex;
+    width: fit-content;
+    margin: 0 auto 10px 0;
+    align-self: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .limited-offer-tag { margin-top: 10px; margin-bottom: 6px; }
   
   .hero-curve-bottom { height: 100px; width: 220%; bottom: -1px; }
   .hero-stats { gap: 10px; font-size: 13px; margin-bottom: 20px; }
+
+  /* Lift the skyline so it doesn't overlap bottom corners */
+  .hero-svg-bg {
+    background-position: bottom center;
+    background-size: contain;
+  }
 }/*old max*/
 
 @media (min-width: 601px) {
   .hero-membership-footer--outside {
     margin-bottom: 28px;
+  }
+}
+
+@media (min-width: 601px) {
+  .hero-mobile-location {
+    display: none;
   }
 }

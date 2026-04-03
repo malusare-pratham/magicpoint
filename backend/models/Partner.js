@@ -20,7 +20,19 @@ const partnerSchema = new mongoose.Schema({
     totalDiscount: { type: Number, default: 0 },
     customerDiscount: { type: Number, default: 0 },
     platformCommission: { type: Number, default: 0 },
-    status: { type: String, default: 'Pending', enum: ['Pending', 'Active', 'Blocked'] }
+    status: { type: String, default: 'Pending', enum: ['Pending', 'Active', 'Blocked'] },
+    location: {
+        type: {
+            type: String,
+            enum: ['Point'],
+            default: 'Point'
+        },
+        coordinates: {
+            type: [Number]
+        }
+    }
 }, { timestamps: true });
+
+partnerSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('Partner', partnerSchema);

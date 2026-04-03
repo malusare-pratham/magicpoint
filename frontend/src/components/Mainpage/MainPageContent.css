@@ -59,6 +59,7 @@
   padding-top: var(--mp-sticky-space, 0px);
 }
 
+
 .mp-gradient-title {
   font-size: clamp(28px, 7vw, 40px);
   font-weight: 900;
@@ -73,6 +74,49 @@
   color: #1f2937;
   font-weight: 500;
   margin-top: 8px;
+}
+
+.mp-location-bar {
+  margin: 10px auto 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+  border: 1px solid #eef2f7;
+}
+
+.mp-location-select {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4c1d95;
+  padding: 6px 8px;
+  min-width: 160px;
+  appearance: none;
+}
+
+.mp-location-select:focus {
+  outline: none;
+}
+
+.mp-location-btn {
+  border: none;
+  background: #5a35d6;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.mp-location-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 
 /* ३. सेक्शन हेडर आणि 'See All' बटन Styling */

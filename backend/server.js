@@ -3,6 +3,7 @@ const fs = require('fs'); // इमेजेस फोल्डर चेक क
 const path = require('path');
 const app = require('./app');
 const { connectDB, disconnectDB } = require('./config/db');
+const Partner = require('./models/Partner');
 const { port } = require('./config/env');
 
 let server;
@@ -16,6 +17,12 @@ if (!fs.existsSync(uploadDir)) {
 const startServer = async () => {
     try {
         await connectDB();
+        try {
+            await Partner.syncIndexes();
+            console.log('Partner indexes synced');
+        } catch (error) {
+            console.warn(`Partner index sync failed: ${error.message}`);
+        }
         server = http.createServer(app);
 
         server.listen(port, () => {

@@ -27,6 +27,8 @@ const MainContent = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("Food & Dining");
   const [partners, setPartners] = useState([]);
+  const [coords, setCoords] = useState(null);
+  const [useGps, setUseGps] = useState(true);
 
   const categories = [
     {
@@ -48,10 +50,77 @@ const MainContent = () => {
   ];
 
   useEffect(() => {
+    const savedUseGps = localStorage.getItem('tsg_use_gps');
+    if (savedUseGps === 'false') setUseGps(false);
+
+    let fallbackCoords = null;
+    const savedCoords = localStorage.getItem('tsg_user_coords');
+    if (savedCoords) {
+      try {
+        const parsed = JSON.parse(savedCoords);
+        if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng)) {
+          fallbackCoords = { lat: parsed.lat, lng: parsed.lng };
+        }
+      } catch (_error) {
+        // ignore
+      }
+    }
+
+    if (navigator?.geolocation && savedUseGps !== 'false') {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords || {};
+          if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+            setCoords({ lat: latitude, lng: longitude });
+            return;
+          }
+          if (fallbackCoords) setCoords(fallbackCoords);
+        },
+        () => {
+          if (fallbackCoords) setCoords(fallbackCoords);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+      );
+    } else if (fallbackCoords) {
+      setCoords(fallbackCoords);
+    }
+
+    const handleLocationChange = (event) => {
+      const detail = event?.detail || {};
+      const nextCoords = detail.coords && Number.isFinite(detail.coords.lat) && Number.isFinite(detail.coords.lng)
+        ? { lat: Number(detail.coords.lat), lng: Number(detail.coords.lng) }
+        : null;
+      const nextUseGps = typeof detail.useGps === 'boolean' ? detail.useGps : undefined;
+      if (nextCoords) {
+        setCoords(nextCoords);
+      }
+      if (nextUseGps !== undefined) {
+        setUseGps(nextUseGps);
+      }
+    };
+
+    window.addEventListener('tsg-location-change', handleLocationChange);
+    return () => window.removeEventListener('tsg-location-change', handleLocationChange);
+  }, []);
+
+  useEffect(() => {
     const fetchPartners = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/admin/partners`);
-        setPartners(Array.isArray(response?.data) ? response.data : []);
+        if (coords) {
+          const response = await axios.get(`${API_BASE_URL}/api/partners/nearby`, {
+            headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+            params: {
+              lat: coords.lat,
+              lng: coords.lng,
+              radius: 15000,
+              _ts: Date.now()
+            }
+          });
+          setPartners(Array.isArray(response?.data) ? response.data : []);
+        } else {
+          const response = await axios.get(`${API_BASE_URL}/api/admin/partners`);
+          setPartners(Array.isArray(response?.data) ? response.data : []);
+        }
       } catch (_error) {
         setPartners([]);
       }
@@ -60,7 +129,7 @@ const MainContent = () => {
     fetchPartners();
     const refreshTimer = setInterval(fetchPartners, 10000);
     return () => clearInterval(refreshTimer);
-  }, []);
+  }, [coords]);
 
   const visibleCategory = useMemo(
     () => categories.find((cat) => cat.title === activeCategory) || categories[0],
@@ -76,7 +145,7 @@ const MainContent = () => {
         id: partner?._id || index,
         name: partner?.restaurantName || 'Partner Restaurant',
         area: partner?.area || 'Panchgani',
-        img: normalizeImageUrl(partner?.imageUrl),
+        img: normalizeImageUrl(partner?.imageUrl || partner?.resImage),
         discount: Number.isFinite(Number(partner?.customerDiscount))
           ? Number(partner.customerDiscount)
           : 10,

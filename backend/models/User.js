@@ -34,7 +34,15 @@ const userSchema = new mongoose.Schema(
         membershipPlan: {
             type: String,
             required: true,
-            enum: ['Single Plan', 'Family Plan', 'Free Plan']
+            enum: ['Single Plan', 'Family Plan', 'Free Plan'],
+            set: (value) => {
+                const raw = String(value || '').trim();
+                const normalized = raw.toLowerCase();
+                if (normalized === 'single plan' || normalized === 'single') return 'Single Plan';
+                if (normalized === 'family plan' || normalized === 'family') return 'Family Plan';
+                if (normalized === 'free plan' || normalized === 'free') return 'Free Plan';
+                return raw;
+            }
         },
         membershipActivatedAt: {
             type: Date

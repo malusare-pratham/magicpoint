@@ -7,6 +7,11 @@ import "./MainPageContent.css";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 const DEFAULT_OFFER_IMAGE = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80";
 
+const CITY_OPTIONS = [
+  { label: "Panchgani", value: "Panchgani", lat: 17.9237, lng: 73.8007 },
+  { label: "Mahabaleshwar", value: "Mahabaleshwar", lat: 17.9237, lng: 73.6586 },
+];
+
 const normalizeImageUrl = (rawUrl) => {
   if (!rawUrl) return DEFAULT_OFFER_IMAGE;
   const value = String(rawUrl).trim();
@@ -29,8 +34,24 @@ const normalizeImageUrl = (rawUrl) => {
   return `${base}/${path}`;
 };
 
-const FilterBar = ({ activeCategory, setActiveCategory }) => {
-  const categories = ["Food & Dining", "Local Stores & Gift House", "Activities & Adventure", "Stay & Hotels"];
+const toRad = (value) => (Number(value) * Math.PI) / 180;
+const haversineKm = (a, b) => {
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const h =
+    sinDLat * sinDLat +
+    Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+};
+
+const CATEGORY_OPTIONS = ["Food & Dining", "Local Stores & Gift House", "Activities & Adventure", "Stay & Hotels"];
+
+const FilterBar = ({ activeCategory, onCategoryChange }) => {
+  const categories = CATEGORY_OPTIONS;
 
   return (
     <div className="mp-filter-section">
@@ -39,7 +60,7 @@ const FilterBar = ({ activeCategory, setActiveCategory }) => {
           <button
             key={cat}
             className={`mp-tab ${activeCategory === cat ? "active" : ""}`}
-            onClick={() => setActiveCategory(cat)}
+            onClick={() => onCategoryChange(cat)}
           >
             {cat}
           </button>
@@ -108,6 +129,11 @@ const MainPageContent = () => {
   const [partnerInfoById, setPartnerInfoById] = useState({});
   const [reviewStatsById, setReviewStatsById] = useState({});
   const [activeCategory, setActiveCategory] = useState("Food & Dining");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [locationStatus, setLocationStatus] = useState("idle");
+  const [coords, setCoords] = useState(null);
+  const [useGps, setUseGps] = useState(true);
+  const [hasManualCategory, setHasManualCategory] = useState(false);
   const [pressedCardId, setPressedCardId] = useState(null);
   const pressResetTimer = useRef(null);
   const reviewStatsRef = useRef({});
@@ -136,9 +162,74 @@ const MainPageContent = () => {
   };
 
   useEffect(() => {
-    const fetchPartners = async () => {
+    const savedCoords = localStorage.getItem("tsg_user_coords");
+    const savedCity = localStorage.getItem("tsg_selected_city");
+    const savedUseGps = localStorage.getItem("tsg_use_gps");
+    const isMobile = typeof window !== "undefined" && window.innerWidth <= 600;
+    if (isMobile && savedUseGps !== "false") {
+      setUseGps(true);
+      localStorage.setItem("tsg_use_gps", "true");
+    }
+    if (savedUseGps === "false") setUseGps(false);
+    if (savedCity) setSelectedCity(savedCity);
+    if (savedCoords) {
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/admin/partners`);
+        const parsed = JSON.parse(savedCoords);
+        if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng)) {
+          if (savedUseGps !== "false") {
+            setCoords({ lat: parsed.lat, lng: parsed.lng });
+          }
+        }
+      } catch (_error) {
+        // ignore
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleLocationChange = (event) => {
+      const detail = event?.detail || {};
+      const city = String(detail.city || '').trim();
+      const nextCoords = detail.coords && Number.isFinite(detail.coords.lat) && Number.isFinite(detail.coords.lng)
+        ? { lat: Number(detail.coords.lat), lng: Number(detail.coords.lng) }
+        : null;
+      const nextUseGps = typeof detail.useGps === 'boolean' ? detail.useGps : undefined;
+
+      if (city) {
+        setSelectedCity(city);
+        localStorage.setItem("tsg_selected_city", city);
+      }
+      if (nextCoords) {
+        setCoords(nextCoords);
+        localStorage.setItem("tsg_user_coords", JSON.stringify(nextCoords));
+        setLocationStatus("ok");
+      }
+      if (nextUseGps !== undefined) {
+        setUseGps(nextUseGps);
+        localStorage.setItem("tsg_use_gps", String(nextUseGps));
+      }
+    };
+
+    window.addEventListener("tsg-location-change", handleLocationChange);
+    return () => window.removeEventListener("tsg-location-change", handleLocationChange);
+  }, []);
+
+  useEffect(() => {
+    const fetchPartners = async () => {
+      if (!coords) {
+        setPartners([]);
+        return;
+      }
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/partners/nearby`, {
+          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+          params: {
+            lat: coords.lat,
+            lng: coords.lng,
+            radius: 15000,
+            _ts: Date.now()
+          }
+        });
         setPartners(Array.isArray(response.data) ? response.data : []);
       } catch (_error) {
         setPartners([]);
@@ -148,7 +239,69 @@ const MainPageContent = () => {
     fetchPartners();
     const refreshTimer = setInterval(fetchPartners, 10000);
     return () => clearInterval(refreshTimer);
-  }, []);
+  }, [coords]);
+
+  useEffect(() => {
+    if (!navigator?.geolocation) {
+      setLocationStatus("unavailable");
+      return;
+    }
+    if (!useGps) return;
+
+    setLocationStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords || {};
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          setLocationStatus("denied");
+          return;
+        }
+
+        const current = { lat: latitude, lng: longitude };
+        setCoords(current);
+        localStorage.setItem("tsg_user_coords", JSON.stringify(current));
+        setLocationStatus("ok");
+
+        const ranked = CITY_OPTIONS.map((city) => ({
+          ...city,
+          distance: haversineKm(current, city),
+        })).sort((a, b) => a.distance - b.distance);
+        const nearest = ranked[0];
+        if (nearest && nearest.distance <= 80) {
+          setSelectedCity(nearest.value);
+          localStorage.setItem("tsg_selected_city", nearest.value);
+        }
+      },
+      () => {
+        setLocationStatus("denied");
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+    );
+  }, [useGps]);
+
+  useEffect(() => {
+    if (coords) return;
+    if (!selectedCity) return;
+    const match = CITY_OPTIONS.find((city) => city.value === selectedCity);
+    if (match) {
+      const nextCoords = { lat: match.lat, lng: match.lng };
+      setCoords(nextCoords);
+      localStorage.setItem("tsg_user_coords", JSON.stringify(nextCoords));
+    }
+  }, [coords, selectedCity]);
+
+  useEffect(() => {
+    if (coords) return;
+    if (locationStatus !== "denied" && locationStatus !== "unavailable") return;
+    if (selectedCity) return;
+    const fallbackCity = CITY_OPTIONS[0];
+    if (!fallbackCity) return;
+    setSelectedCity(fallbackCity.value);
+    localStorage.setItem("tsg_selected_city", fallbackCity.value);
+    const nextCoords = { lat: fallbackCity.lat, lng: fallbackCity.lng };
+    setCoords(nextCoords);
+    localStorage.setItem("tsg_user_coords", JSON.stringify(nextCoords));
+  }, [coords, locationStatus, selectedCity]);
 
   useEffect(() => {
     let isMounted = true;
@@ -221,7 +374,7 @@ const MainPageContent = () => {
     };
   }, [partners]);
 
-  const filteredItems = useMemo(
+  const mappedItems = useMemo(
     () =>
       partners
         .filter((p) => {
@@ -259,13 +412,34 @@ const MainPageContent = () => {
               "Great food and service",
             location: partner.area || "Panchgani",
             distance: partner.distance || "1.2 km",
-            image: normalizeImageUrl(partner.imageUrl),
+            image: normalizeImageUrl(partner.imageUrl || partner.resImage),
             businessCategory: partner.businessCategory || "Food & Dining",
+            area: partner.area || "",
           };
-        })
-        .filter((item) => item.businessCategory === activeCategory),
-    [partners, partnerInfoById, reviewStatsById, activeCategory]
+        }),
+    [partners, partnerInfoById, reviewStatsById]
   );
+
+  const filteredItems = useMemo(
+    () => mappedItems.filter((item) => item.businessCategory === activeCategory),
+    [mappedItems, activeCategory]
+  );
+
+  const displayItems = filteredItems;
+
+  useEffect(() => {
+    if (hasManualCategory) return;
+    if (!mappedItems.length) return;
+    const available = new Set(
+      mappedItems
+        .map((item) => String(item?.businessCategory || "").trim())
+        .filter(Boolean)
+    );
+    if (!available.size) return;
+    if (available.has(activeCategory)) return;
+    const next = CATEGORY_OPTIONS.find((cat) => available.has(cat)) || activeCategory;
+    if (next !== activeCategory) setActiveCategory(next);
+  }, [mappedItems, activeCategory, hasManualCategory]);
 
   useEffect(
     () => () => {
@@ -285,7 +459,13 @@ const MainPageContent = () => {
             <p className="mp-sub-title">Lowest prices for all your favourite Tripspotgos</p>
           </header>
 
-          <FilterBar activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+          <FilterBar
+            activeCategory={activeCategory}
+            onCategoryChange={(cat) => {
+              setHasManualCategory(true);
+              setActiveCategory(cat);
+            }}
+          />
         </div>
 
         <section className="mp-section">
@@ -301,8 +481,8 @@ const MainPageContent = () => {
           </div>
 
           <div className="mpc-card-grid">
-            {filteredItems.length > 0 ? (
-              filteredItems.map((item) => (
+            {displayItems.length > 0 ? (
+              displayItems.map((item) => (
                 <OfferCard
                   key={item.id}
                   item={item}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
@@ -15,6 +15,8 @@ const initialForm = {
     email: '',
     password: '',
     area: '',
+    latitude: '',
+    longitude: '',
     totalDiscount: '',
     customerDiscount: '',
     platformCommission: ''
@@ -63,6 +65,12 @@ const AdminDashboard = () => {
         featuresList: ['']
     });
     const [editingMembershipId, setEditingMembershipId] = useState(null);
+    const mapContainerRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const mapMarkerRef = useRef(null);
+    const [locationQuery, setLocationQuery] = useState('');
+    const [locationError, setLocationError] = useState('');
+    const [geocoding, setGeocoding] = useState(false);
 
     const fetchDashboard = async () => {
         try {
@@ -126,6 +134,104 @@ const AdminDashboard = () => {
         const timer = setInterval(() => setNowTick(Date.now()), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    useEffect(() => {
+        if (view !== 'add') return;
+        const L = window?.L;
+        if (!L || !mapContainerRef.current || mapInstanceRef.current) return;
+
+        const defaultCenter = [17.9237, 73.8007];
+        const map = L.map(mapContainerRef.current, {
+            center: defaultCenter,
+            zoom: 12,
+            scrollWheelZoom: false
+        });
+        mapInstanceRef.current = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const marker = L.marker(defaultCenter, { draggable: true }).addTo(map);
+        mapMarkerRef.current = marker;
+
+        const syncCoords = (latlng) => {
+            setFormData((prev) => ({
+                ...prev,
+                latitude: latlng.lat.toFixed(6),
+                longitude: latlng.lng.toFixed(6)
+            }));
+        };
+
+        const setMapPoint = (lat, lng) => {
+            const next = { lat, lng };
+            if (mapMarkerRef.current) {
+                mapMarkerRef.current.setLatLng(next);
+            }
+            map.setView(next, Math.max(map.getZoom(), 14), { animate: true });
+            syncCoords(next);
+        };
+
+        marker.on('dragend', (event) => {
+            const latlng = event?.target?.getLatLng ? event.target.getLatLng() : null;
+            if (latlng) syncCoords(latlng);
+        });
+
+        map.on('click', (event) => {
+            if (!event?.latlng) return;
+            setMapPoint(event.latlng.lat, event.latlng.lng);
+        });
+
+        syncCoords({ lat: defaultCenter[0], lng: defaultCenter[1] });
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 0);
+    }, [view]);
+
+    useEffect(() => {
+        if (view === 'add') return;
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+            mapMarkerRef.current = null;
+        }
+    }, [view]);
+
+    const handleLocationSearch = async (event) => {
+        event.preventDefault();
+        const query = String(locationQuery || '').trim();
+        if (!query) return;
+        setLocationError('');
+        setGeocoding(true);
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+            const response = await fetch(url, {
+                headers: { 'Accept-Language': 'en' }
+            });
+            const data = await response.json();
+            const hit = Array.isArray(data) && data[0] ? data[0] : null;
+            const lat = Number(hit?.lat);
+            const lng = Number(hit?.lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                setLocationError('Location not found. Try a more specific address.');
+                return;
+            }
+            if (mapMarkerRef.current && mapInstanceRef.current) {
+                mapMarkerRef.current.setLatLng({ lat, lng });
+                mapInstanceRef.current.setView({ lat, lng }, Math.max(mapInstanceRef.current.getZoom(), 14), { animate: true });
+            }
+            setFormData((prev) => ({
+                ...prev,
+                latitude: lat.toFixed(6),
+                longitude: lng.toFixed(6)
+            }));
+        } catch (_error) {
+            setLocationError('Unable to search location right now.');
+        } finally {
+            setGeocoding(false);
+        }
+    };
 
     const handleLogout = () => {
         localStorage.clear();
@@ -1213,6 +1319,32 @@ const AdminDashboard = () => {
                                 <div className="form-field">
                                     <label>Area</label>
                                     <input name="area" placeholder="Area" value={formData.area} onChange={handleInputChange} required />
+                                </div>
+                                <div className="form-field">
+                                    <label>Latitude</label>
+                                    <input name="latitude" type="number" step="0.000001" placeholder="Latitude (e.g. 17.9237)" value={formData.latitude} onChange={handleInputChange} required />
+                                </div>
+                                <div className="form-field">
+                                    <label>Longitude</label>
+                                    <input name="longitude" type="number" step="0.000001" placeholder="Longitude (e.g. 73.8007)" value={formData.longitude} onChange={handleInputChange} required />
+                                </div>
+                                <div className="form-field form-field--full">
+                                    <label>Pick Location (Click to drop pin)</label>
+                                    <form className="admin-location-search" onSubmit={handleLocationSearch}>
+                                        <input
+                                            type="text"
+                                            placeholder="Search location (e.g. Hotel Ravine, Panchgani)"
+                                            value={locationQuery}
+                                            onChange={(e) => setLocationQuery(e.target.value)}
+                                        />
+                                        <button type="submit" disabled={geocoding}>
+                                            {geocoding ? 'Searching...' : 'Search'}
+                                        </button>
+                                    </form>
+                                    {locationError && <div className="admin-location-error">{locationError}</div>}
+                                    <div className="admin-map-wrap">
+                                        <div ref={mapContainerRef} className="admin-map"></div>
+                                    </div>
                                 </div>
                                 <div className="form-field">
                                     <label>Total Discount (%)</label>
