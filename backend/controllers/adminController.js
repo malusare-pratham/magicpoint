@@ -603,8 +603,8 @@ exports.upsertPartnerInfo = async (req, res) => {
 exports.getAdminDashboardStats = async (req, res) => {
     try {
         const users = await User.find({})
-            .sort({ lastLoginAt: -1, membershipActivatedAt: -1, createdAt: -1 })
-            .select('name email mobileNumber membershipPlan lastLoginAt membershipActivatedAt membershipExpiresAt createdAt')
+            .sort({ lastLoginAt: -1, lastSeen: -1, createdAt: -1 })
+            .select('name email mobileNumber lastLoginAt lastSeen isOnline createdAt')
             .lean();
 
         const now = new Date();
@@ -691,10 +691,9 @@ exports.getAdminDashboardStats = async (req, res) => {
                     name: user.name,
                     email: user.email || '-',
                     mobile: user.mobileNumber,
-                    membershipPlan: user.membershipPlan,
-                    lastLoginAt: user.lastLoginAt || user.membershipActivatedAt || user.createdAt,
-                    membershipActivatedAt: user.membershipActivatedAt,
-                    membershipExpiresAt: user.membershipExpiresAt,
+                    lastLoginAt: user.lastLoginAt || user.lastSeen || user.createdAt,
+                    lastSeen: user.lastSeen || null,
+                    isOnline: user.isOnline === true,
                     createdAt: user.createdAt,
                     transactions: stat.totalTransactions || 0,
                     totalSaved: stat.totalSavings || 0

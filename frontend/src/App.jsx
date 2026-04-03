@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import Navbar from './components/Navbar/Navbar';
 import Hero from './components/Hero/Hero';
 import Steps from './components/steps/Steps'; 
@@ -52,6 +53,47 @@ import Blog from './pages/Blog';
 
 const AppLayout = () => {
   const location = useLocation();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+  useEffect(() => {
+    if (!API_BASE_URL) return;
+
+    const sendHeartbeat = () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      fetch(`${API_BASE_URL}/api/auth/heartbeat`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
+    };
+
+    const sendLogout = () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        keepalive: true
+      }).catch(() => {});
+    };
+
+    sendHeartbeat();
+    const intervalId = setInterval(sendHeartbeat, 30000);
+    window.addEventListener('beforeunload', sendLogout);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        sendLogout();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('beforeunload', sendLogout);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [API_BASE_URL]);
   
   const hideHeaderFooter = 
     location.pathname === '/upload-bill' || 

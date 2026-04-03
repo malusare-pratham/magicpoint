@@ -20,9 +20,8 @@ const haversineKm = (a, b) => {
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 };
 
-function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime = "" }) {
+function Hero() {
   const [selectedCity, setSelectedCity] = useState("");
-  const [hasPickedLocation, setHasPickedLocation] = useState(false);
   const [locationQuery, setLocationQuery] = useState("");
   const [locationOpen, setLocationOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -35,7 +34,6 @@ function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime =
     const savedCity = localStorage.getItem("tsg_selected_city");
     if (savedCity) {
       setSelectedCity(savedCity);
-      setHasPickedLocation(true);
       setLocationQuery(savedCity);
     }
   }, []);
@@ -62,7 +60,6 @@ function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime =
 
   const handleCityChange = (value) => {
     setSelectedCity(value);
-    setHasPickedLocation(true);
     setLocationQuery(value);
     localStorage.setItem("tsg_selected_city", value);
     localStorage.setItem("tsg_use_gps", "false");
@@ -104,7 +101,6 @@ function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime =
           const coords = { lat: current.lat, lng: current.lng };
           localStorage.setItem("tsg_user_coords", JSON.stringify(coords));
           setSelectedCity(nearest.value);
-          setHasPickedLocation(true);
           setLocationQuery("Current location");
           localStorage.setItem("tsg_selected_city", nearest.value);
           window.dispatchEvent(
@@ -118,7 +114,6 @@ function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime =
           window.dispatchEvent(
             new CustomEvent("tsg-location-change", { detail: { coords, useGps: true } })
           );
-          setHasPickedLocation(true);
           setLocationQuery("Current location");
           setLocationError("Out of service area. Please select manually.");
         }
@@ -190,32 +185,14 @@ function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime =
             Explore <span className="city-name">Panchgani & Mahabaleshwar</span>
           </h1>
           
-                              <div className="offer-highlight-box">
+          <div className="offer-highlight-box">
             <div className="discount-main">
               GET FLAT <span className="big-percent">10%</span> OFF
             </div>
             <p className="offer-sub">ON HOTELS • FOOD • ACTIVITIES • SHOPS</p>
-            {showMembershipBox && (
-              <div className="hero-membership-footer hero-membership-footer--inside">
-                <div className="hero-footer-info">
-                  <i className="fa-regular fa-calendar-check"></i> VALID UNTIL {validUntilLabel || "Not Available"}
-                </div>
-                <div className="hero-timer-box">
-                  <i className="fa-solid fa-clock"></i> REMAINING: {remainingTime || "00hr-00m-00s"}
-                </div>
-              </div>
-            )}
+            
           </div>
-          {showMembershipBox && (
-            <div className="hero-membership-footer hero-membership-footer--outside">
-              <div className="hero-footer-info">
-                <i className="fa-regular fa-calendar-check"></i> VALID UNTIL {validUntilLabel || "Not Available"}
-              </div>
-              <div className="hero-timer-box">
-                <i className="fa-solid fa-clock"></i> REMAINING: {remainingTime || "00hr-00m-00s"}
-              </div>
-            </div>
-          )}
+          
         </div>
 
         <div className="search-wrapper">
@@ -253,5 +230,7 @@ function Hero({ showMembershipBox = false, validUntilLabel = "", remainingTime =
 }
 
 export default Hero;
+
+
 
 

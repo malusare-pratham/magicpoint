@@ -456,7 +456,8 @@ const AdminDashboard = () => {
         () =>
             loggedInUsers.map((user) => ({
                 ...user,
-                formattedLastLogin: user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : '-'
+                formattedLastLogin: user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : '-',
+                formattedCreatedAt: user?.createdAt ? new Date(user.createdAt).toLocaleString() : '-'
             })),
         [loggedInUsers]
     );
@@ -536,7 +537,10 @@ const AdminDashboard = () => {
 
                 const expiryDateValue = expiresAt || (joinBase ? addHours(joinBase, 48) : null);
                 const expiryDate = formatDateTime(expiryDateValue);
-                const isActive = Boolean(expiryDateValue) && expiryDateValue >= new Date();
+                const lastSeenAt = parseDate(user?.lastSeen);
+                const isActive = Boolean(user?.isOnline) && lastSeenAt
+                    ? (Date.now() - lastSeenAt.getTime()) <= 60000
+                    : Boolean(user?.isOnline);
                 const remainingMs = expiryDateValue ? expiryDateValue.getTime() - nowTick : null;
                 const remaining = remainingMs === null
                     ? '-'
@@ -693,14 +697,6 @@ const AdminDashboard = () => {
                             >
                                 <i className="fa-regular fa-user"></i>
                                 Members
-                            </button>
-                            <button
-                                type="button"
-                                className={`admin-quick-pill ${quickTab === 'memberships' ? 'active' : ''}`}
-                                onClick={() => setQuickTab('memberships')}
-                            >
-                                <i className="fa-solid fa-id-card"></i>
-                                Membership Plans
                             </button>
                             <button
                                 type="button"
@@ -1084,11 +1080,7 @@ const AdminDashboard = () => {
                                         <thead>
                                             <tr>
                                                 <th>Member</th>
-                                                <th>Type</th>
-                                                <th>Plan Amount</th>
                                                 <th>Join Date</th>
-                                                <th>Expiry</th>
-                                                <th>Remaining</th>
                                                 <th>Transactions</th>
                                                 <th>Total Saved</th>
                                                 <th>Status</th>
@@ -1106,13 +1098,7 @@ const AdminDashboard = () => {
                                                                 <small>{member.email || '-'}</small>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <span className={`member-type-text ${member.typeKey}`}>{member.type}</span>
-                                                        </td>
-                                                        <td>{member.planAmount === null ? '-' : `₹${member.planAmount}`}</td>
                                                         <td>{member.joinDate}</td>
-                                                        <td>{member.expiryDate}</td>
-                                                        <td>{member.remaining}</td>
                                                         <td>{member.transactions}</td>
                                                         <td className="member-saved">₹{member.totalSaved}</td>
                                                         <td>
@@ -1150,7 +1136,7 @@ const AdminDashboard = () => {
                                                 <th>Name</th>
                                                 <th>Mobile</th>
                                                 <th>Email</th>
-                                                <th>Plan</th>
+                                                <th>Registered</th>
                                                 <th>Last Login</th>
                                                 <th>Actions</th>
                                             </tr>
@@ -1162,7 +1148,7 @@ const AdminDashboard = () => {
                                                         <td>{user.name || '-'}</td>
                                                         <td>{user.mobile || '-'}</td>
                                                         <td>{user.email || '-'}</td>
-                                                        <td>{user.membershipPlan || '-'}</td>
+                                                        <td>{user.formattedCreatedAt}</td>
                                                         <td>{user.formattedLastLogin}</td>
                                                         <td>
                                                             <button
@@ -1373,4 +1359,12 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+
+
+
+
+
+
+
 

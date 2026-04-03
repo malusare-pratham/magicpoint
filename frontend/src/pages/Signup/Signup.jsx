@@ -6,6 +6,7 @@ import './Signup.css';
 
 const API_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
+const FORCE_FREE_MEMBERSHIP = true;
 
 const loadRazorpayCheckoutScript = () =>
     new Promise((resolve) => {
@@ -65,6 +66,11 @@ function Signup() {
     }, []);
 
     useEffect(() => {
+        if (FORCE_FREE_MEMBERSHIP) {
+            setPlansLoading(false);
+            setMembershipPlans([]);
+            return;
+        }
         let isMounted = true;
         const loadPlans = async () => {
             try {
@@ -126,7 +132,7 @@ function Signup() {
         setErrorMessage('');
         setStatusMessage('');
 
-        const hasPlans = membershipPlans.length > 0;
+        const hasPlans = !FORCE_FREE_MEMBERSHIP && membershipPlans.length > 0;
         if (hasPlans && !activePlanId) {
             setErrorMessage('Please select a membership plan first.');
             return;
@@ -279,7 +285,7 @@ function Signup() {
     };
 
     const selectedPlan = membershipPlans.find((plan) => plan.id === activePlanId);
-    const hasPlans = membershipPlans.length > 0;
+    const hasPlans = !FORCE_FREE_MEMBERSHIP && membershipPlans.length > 0;
     const getPlanTone = (plan, index) => {
         const title = String(plan?.title || '').toLowerCase();
         if (title.includes('family')) return { tone: 'green', icon: Users, badgeClass: 'green-badge', selectedClass: 'selected-family', visualClass: 'family-bg', buttonClass: 'green-btn' };
@@ -307,8 +313,8 @@ function Signup() {
                     <div className="brand-logo">
                         Trip<span>spot</span>
                     </div>
-                    <h2>Exclusive Membership</h2>
-                    <p>Select a plan to unlock 500+ partner discounts</p>
+                    <h2>Create Your Free Account</h2>
+                    <p>Sign up to unlock 500+ partner discounts</p>
                 </div>
 
                 {/* Plans Section (Same as before — untouched) */}
@@ -371,7 +377,7 @@ function Signup() {
                         className={`registration-section-fade-in ${highlightRegistration ? 'registration-point-out' : ''}`}
                     >
                         <div className="section-divider">
-                            <span>Register for {hasPlans ? selectedPlan.title : 'Tripspot'} Membership</span>
+                            <span>Register for Tripspotgo</span>
                         </div>
 
                         <form className="auth-form" onSubmit={handleSubmit}>

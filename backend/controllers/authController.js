@@ -17,50 +17,10 @@ const normalizeIdentifier = (email, mobile) => {
 };
 
 const validateAndBuildUserPayload = async (rawData = {}) => {
-    const { name, email, mobile, password, membershipPlan } = rawData;
+    const { name, email, mobile, password } = rawData;
 
-    if (!name || !mobile || !password || !membershipPlan) {
-        const activePlanCount = await Membership.countDocuments({ isActive: true });
-        if (activePlanCount === 0) {
-            const fallbackPlan = String(membershipPlan || 'Free Plan').trim() || 'Free Plan';
-            const userPayload = {
-                name: String(name || '').trim(),
-                password: String(password || ''),
-                mobileNumber: String(mobile || '').trim(),
-                membershipPlan: fallbackPlan,
-                ...(email ? { email: String(email).trim().toLowerCase() } : {})
-            };
-
-            if (!userPayload.name || !userPayload.mobileNumber || !userPayload.password) {
-                const error = new Error('name, mobile and password are required');
-                error.statusCode = 400;
-                throw error;
-            }
-
-            return { userPayload, planDoc: null, hasActivePlans: false };
-        }
-
-        const error = new Error('name, mobile, password and membershipPlan are required');
-        error.statusCode = 400;
-        throw error;
-    }
-
-    const normalizedPlan = String(membershipPlan).trim();
-    const activePlanCount = await Membership.countDocuments({ isActive: true });
-    if (activePlanCount === 0) {
-        const userPayload = {
-            name: String(name).trim(),
-            password: String(password),
-            mobileNumber: String(mobile).trim(),
-            membershipPlan: normalizedPlan || 'Free Plan',
-            ...(email ? { email: String(email).trim().toLowerCase() } : {})
-        };
-        return { userPayload, planDoc: null, hasActivePlans: false };
-    }
-
-    const planDoc = await Membership.findOne({ title: normalizedPlan, isActive: true }).lean();
-    if (!planDoc) {
-        const error = new Error('membershipPlan is invalid or inactive');
+    if (!name || !mobile || !password) {
+        const error = new Error('name, mobile and password are required');
         error.statusCode = 400;
         throw error;
     }
@@ -69,7 +29,6 @@ const validateAndBuildUserPayload = async (rawData = {}) => {
         name: String(name).trim(),
         password: String(password),
         mobileNumber: String(mobile).trim(),
-        membershipPlan: normalizedPlan,
         ...(email ? { email: String(email).trim().toLowerCase() } : {})
     };
 
@@ -85,7 +44,7 @@ const validateAndBuildUserPayload = async (rawData = {}) => {
         throw error;
     }
 
-    return { userPayload, planDoc, hasActivePlans: true };
+    return { userPayload, planDoc: null, hasActivePlans: false };
 };
 
 const findExistingUser = async (userPayload) => {
@@ -223,12 +182,7 @@ const verifySignupPaymentAndRegister = asyncHandler(async (req, res) => {
         throw error;
     }
 
-    const { userPayload, planDoc } = await validateAndBuildUserPayload(registrationData || {});
-    if (!planDoc) {
-        const error = new Error('No active membership plans available.');
-        error.statusCode = 400;
-        throw error;
-    }
+    const { userPayload } = await validateAndBuildUserPayload(registrationData || {});
     const existingUser = await findExistingUser(userPayload);
     if (existingUser) {
         const error = new Error('User already exists with the given email/mobile');
@@ -236,14 +190,7 @@ const verifySignupPaymentAndRegister = asyncHandler(async (req, res) => {
         throw error;
     }
 
-    const now = new Date();
-    const durationHours = Number(planDoc?.durationHours) || 48;
-    const expiresAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
-    const user = await User.create({
-        ...userPayload,
-        membershipActivatedAt: now,
-        membershipExpiresAt: expiresAt
-    });
+    const user = await User.create(userPayload);
 
     const token = generateToken(user._id.toString());
 
@@ -287,55 +234,10 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     const now = new Date();
-    const toValidDate = (value) => {
-        if (!value) return null;
-        const parsed = new Date(value);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    };
-    const toObjectIdDate = (value) => {
-        const raw = String(value || '');
-        if (raw.length < 8) return null;
-        const ts = Number.parseInt(raw.slice(0, 8), 16);
-        if (!Number.isFinite(ts)) return null;
-        const parsed = new Date(ts * 1000);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
-    };
-    const activatedAt = toValidDate(user.membershipActivatedAt);
-    const createdAt = toValidDate(user.createdAt);
-    const expiresAtStored = toValidDate(user.membershipExpiresAt);
-    const baseTime = activatedAt || createdAt || toObjectIdDate(user._id) || null;
-    const expiryCandidate = expiresAtStored
-        || (baseTime ? new Date(baseTime.getTime() + 48 * 60 * 60 * 1000) : null);
-
-    if (!expiryCandidate || Number.isNaN(expiryCandidate.getTime())) {
-        const error = new Error('Membership status not found. Please contact support.');
-        error.statusCode = 403;
-        throw error;
-    }
-
-    if (expiryCandidate.getTime() <= now.getTime()) {
-        const error = new Error('Membership expired. Please renew to login.');
-        error.statusCode = 403;
-        throw error;
-    }
-
-    // Start 48hr timer only once; re-login must not reset it.
-    let shouldSave = false;
-    if (!user.membershipExpiresAt) {
-        const startTime = activatedAt || baseTime || now;
-        const expiresAt = new Date(startTime.getTime() + 48 * 60 * 60 * 1000);
-
-        user.membershipActivatedAt = startTime;
-        user.membershipExpiresAt = expiresAt;
-        shouldSave = true;
-    }
-
     user.lastLoginAt = now;
-    shouldSave = true;
-
-    if (shouldSave) {
-        await user.save();
-    }
+    user.lastSeen = now;
+    user.isOnline = true;
+    await user.save();
 
     const token = generateToken(user._id.toString());
 
@@ -354,10 +256,28 @@ const getProfile = asyncHandler(async (req, res) => {
     });
 });
 
+const heartbeatUser = asyncHandler(async (req, res) => {
+    const now = new Date();
+    req.user.lastSeen = now;
+    req.user.isOnline = true;
+    await req.user.save();
+    res.status(200).json({ success: true });
+});
+
+const logoutUser = asyncHandler(async (req, res) => {
+    const now = new Date();
+    req.user.lastSeen = now;
+    req.user.isOnline = false;
+    await req.user.save();
+    res.status(200).json({ success: true });
+});
+
 module.exports = {
     registerUser,
     createSignupOrder,
     verifySignupPaymentAndRegister,
     loginUser,
-    getProfile
+    getProfile,
+    heartbeatUser,
+    logoutUser
 };
