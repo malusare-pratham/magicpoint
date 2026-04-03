@@ -116,6 +116,16 @@ const formatTimeLabel = (value, fallbackMeridiem = 'AM') => {
   return `${hour}:${paddedMin} ${meridiem}`;
 };
 
+const buildRecentMonths = (count = 12) => {
+  const base = new Date();
+  const months = [];
+  for (let i = 0; i < count; i += 1) {
+    const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+    months.push(d.toLocaleString('en-IN', { month: 'long', year: 'numeric' }));
+  }
+  return months;
+};
+
 const fallbackMenu = [];
 
 const getAuthUserFromStorage = () => {
@@ -123,6 +133,18 @@ const getAuthUserFromStorage = () => {
     return JSON.parse(localStorage.getItem('authUser') || '{}') || {};
   } catch (_error) {
     return {};
+  }
+};
+
+const getOrCreateLikeUserId = () => {
+  try {
+    const existing = String(localStorage.getItem('reviewLikeUserId') || '').trim();
+    if (existing) return existing;
+    const next = `anon_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36)}`;
+    localStorage.setItem('reviewLikeUserId', next);
+    return next;
+  } catch (_error) {
+    return '';
   }
 };
 
@@ -173,6 +195,7 @@ const normalizeReviewPhotos = (photos) => {
 
 const mapReviewToCard = (review) => ({
   id: review?._id || review?.id || `rev-${Math.random().toString(36).slice(2, 8)}`,
+  partnerId: String(review?.partnerId || ''),
   name: String(review?.userName || 'Customer'),
   location: (() => {
     const raw = String(review?.userLocation || '').trim();
@@ -193,7 +216,7 @@ const RestaurantPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [userRating, setUserRating] = useState(0);
-  const [visitMonth, setVisitMonth] = useState('March 2026');
+  const [visitMonth, setVisitMonth] = useState(() => buildRecentMonths(1)[0] || '');
   const [visitWith, setVisitWith] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [reviewTitle, setReviewTitle] = useState('');
@@ -210,8 +233,14 @@ const RestaurantPage = () => {
   const touchStartXRef = useRef(null);
   const [restaurantInfo, setRestaurantInfo] = useState(defaultInfo);
   const [reviews, setReviews] = useState([]);
+  const recentMonths = useMemo(() => buildRecentMonths(12), []);
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const likeUserId = useMemo(() => {
+    const authUser = getAuthUserFromStorage();
+    const fromAuth = String(authUser?._id || authUser?.id || '').trim();
+    return fromAuth || getOrCreateLikeUserId();
+  }, []);
   const [localLikes, setLocalLikes] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('reviewLikes') || '{}') || {};
@@ -546,19 +575,66 @@ const RestaurantPage = () => {
     { label: 'Terrible', value: ratingCounts[1] }
   ];
 
-  const handleLikeReview = (reviewId) => {
-    if (!reviewId) return;
+  const handleLikeReview = async (reviewId, reviewPartnerId) => {
+    const effectivePartnerId = reviewPartnerId || partnerId;
+    console.log('like-click', { reviewId, partnerId: effectivePartnerId });
+    if (!reviewId || !effectivePartnerId) return;
+    if (localLikes[reviewId]) return;
+    if (!likeUserId) {
+      setReviewError('Unable to identify user for like.');
+      return;
+    }
+
     setLocalLikes((prev) => {
-      if (prev[reviewId]) return prev;
       const next = { ...prev, [reviewId]: true };
       localStorage.setItem('reviewLikes', JSON.stringify(next));
       return next;
     });
+
+    setReviews((prev) =>
+      prev.map((item) =>
+        String(item._id || item.id) === String(reviewId)
+          ? { ...item, likes: Number(item.likes || 0) + 1 }
+          : item
+      )
+    );
+
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/restaurants/${effectivePartnerId}/reviews/${reviewId}/like`, {
+        userId: likeUserId
+      });
+      const saved = res?.data?.data;
+      if (saved && (saved._id || saved.id)) {
+        setReviews((prev) =>
+          prev.map((item) =>
+            String(item._id || item.id) === String(saved._id || saved.id)
+              ? { ...item, likes: Number(saved.likes || item.likes || 0) }
+              : item
+          )
+        );
+      }
+    } catch (_error) {
+      setReviewError('Unable to like review right now.');
+      setLocalLikes((prev) => {
+        const next = { ...prev };
+        delete next[reviewId];
+        localStorage.setItem('reviewLikes', JSON.stringify(next));
+        return next;
+      });
+      setReviews((prev) =>
+        prev.map((item) =>
+          String(item._id || item.id) === String(reviewId)
+            ? { ...item, likes: Math.max(0, Number(item.likes || 0) - 1) }
+            : item
+        )
+      );
+    }
   };
 
   const getLikeCount = (review) => {
     const base = Number(review?.likes || 0);
-    const extra = localLikes[review?.id] || localLikes[review?._id] ? 1 : 0;
+    const key = review?.id || review?._id;
+    const extra = key && localLikes[key] ? 1 : 0;
     return base + extra;
   };
 
@@ -904,11 +980,21 @@ const RestaurantPage = () => {
                         </div>
                         <button
                           type="button"
-                          className="rp-overview-review-like"
-                          onClick={() => handleLikeReview(review.id)}
+                          className={`rp-overview-review-like ${localLikes[review.id || review._id] ? 'is-liked' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLikeReview(review.id || review._id, review.partnerId);
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            handleLikeReview(review.id || review._id, review.partnerId);
+                          }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation();
+                            handleLikeReview(review.id || review._id, review.partnerId);
+                          }}
                           aria-label="Like review"
-                          aria-pressed={Boolean(localLikes[review.id])}
-                          disabled={Boolean(localLikes[review.id])}
+                          aria-pressed={Boolean(localLikes[review.id || review._id])}
                         >
                           <ThumbsUp size={16} />
                           <span>{getLikeCount(review)}</span>
@@ -1069,10 +1155,9 @@ const RestaurantPage = () => {
                 <div className="rp-review-group">
                   <h3>When did you go?</h3>
                   <select className="rp-visit-select" value={visitMonth} onChange={(e) => setVisitMonth(e.target.value)}>
-                    <option>March 2026</option>
-                    <option>February 2026</option>
-                    <option>January 2026</option>
-                    <option>December 2025</option>
+                    {recentMonths.map((label) => (
+                      <option key={label} value={label}>{label}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -1100,9 +1185,9 @@ const RestaurantPage = () => {
                     className="rp-review-textarea"
                     placeholder="Share your experience..."
                     value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value.slice(0, 25))}
+                    onChange={(e) => setReviewText(e.target.value.slice(0, 125))}
                   />
-                  <p className="rp-char-count">{reviewText.length}/25 min characters</p>
+                  <p className="rp-char-count">{reviewText.length}/125 min characters</p>
                 </div>
 
                 <div className="rp-review-group">
@@ -1112,9 +1197,9 @@ const RestaurantPage = () => {
                     type="text"
                     placeholder="Give us the gist of your experience"
                     value={reviewTitle}
-                    onChange={(e) => setReviewTitle(e.target.value.slice(0, 120))}
+                    onChange={(e) => setReviewTitle(e.target.value.slice(0, 50))}
                   />
-                  <p className="rp-char-count">{reviewTitle.length}/120 max characters</p>
+                  <p className="rp-char-count">{reviewTitle.length}/50 max characters</p>
                 </div>
 
                 <div className="rp-review-group">
@@ -1178,11 +1263,21 @@ const RestaurantPage = () => {
                         </div>
                         <button
                           type="button"
-                          className="rp-overview-review-like"
-                          onClick={() => handleLikeReview(review.id)}
+                          className={`rp-overview-review-like ${localLikes[review.id || review._id] ? 'is-liked' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLikeReview(review.id || review._id, review.partnerId);
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            handleLikeReview(review.id || review._id, review.partnerId);
+                          }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation();
+                            handleLikeReview(review.id || review._id, review.partnerId);
+                          }}
                           aria-label="Like review"
-                          aria-pressed={Boolean(localLikes[review.id])}
-                          disabled={Boolean(localLikes[review.id])}
+                          aria-pressed={Boolean(localLikes[review.id || review._id])}
                         >
                           <ThumbsUp size={16} />
                           <span>{getLikeCount(review)}</span>

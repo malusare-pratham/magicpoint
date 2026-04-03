@@ -95,6 +95,38 @@ const getPartnerReviews = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, data: reviews });
 });
 
+const likePartnerReview = asyncHandler(async (req, res) => {
+    const { partnerId, reviewId } = req.params;
+    const likerId = String(req.body?.userId || req.body?.likerId || '').trim();
+
+    if (!partnerId || !reviewId) {
+        return res.status(400).json({ success: false, message: 'Partner id and review id are required' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(partnerId) || !mongoose.Types.ObjectId.isValid(reviewId)) {
+        return res.status(400).json({ success: false, message: 'Invalid partner or review id' });
+    }
+    if (!likerId) {
+        return res.status(400).json({ success: false, message: 'User id is required to like a review' });
+    }
+
+    const updated = await Review.findOneAndUpdate(
+        { _id: reviewId, partnerId, likedBy: { $ne: likerId } },
+        { $addToSet: { likedBy: likerId }, $inc: { likes: 1 } },
+        { new: true }
+    );
+
+    if (updated) {
+        return res.status(200).json({ success: true, data: updated });
+    }
+
+    const existing = await Review.findOne({ _id: reviewId, partnerId }).lean();
+    if (!existing) {
+        return res.status(404).json({ success: false, message: 'Review not found' });
+    }
+
+    return res.status(200).json({ success: true, data: existing, message: 'Review already liked' });
+});
+
 const createPartnerReview = asyncHandler(async (req, res) => {
     const { partnerId } = req.params;
     const {
@@ -119,12 +151,20 @@ const createPartnerReview = asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, message: 'Rating must be between 1 and 5' });
     }
 
-    if (!String(text || '').trim()) {
+    const trimmedText = String(text || '').trim();
+    if (!trimmedText) {
         return res.status(400).json({ success: false, message: 'Review text is required' });
     }
+    if (trimmedText.length < 125) {
+        return res.status(400).json({ success: false, message: 'Review text must be at least 125 characters' });
+    }
 
-    if (!String(title || '').trim()) {
+    const trimmedTitle = String(title || '').trim();
+    if (!trimmedTitle) {
         return res.status(400).json({ success: false, message: 'Review title is required' });
+    }
+    if (trimmedTitle.length > 50) {
+        return res.status(400).json({ success: false, message: 'Review title must be 50 characters or fewer' });
     }
 
     if (!agree) {
@@ -172,4 +212,4 @@ const deletePartnerReview = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: 'Review deleted', data: review });
 });
 
-module.exports = { getRestaurant, getPartnerReviews, createPartnerReview, deletePartnerReview };
+module.exports = { getRestaurant, getPartnerReviews, likePartnerReview, createPartnerReview, deletePartnerReview };
