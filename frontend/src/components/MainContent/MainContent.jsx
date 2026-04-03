@@ -23,6 +23,35 @@ const normalizeImageUrl = (rawUrl) => {
   return `${base}/${path}`;
 };
 
+const toRad = (value) => (Number(value) * Math.PI) / 180;
+const haversineKm = (a, b) => {
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const h =
+    sinDLat * sinDLat +
+    Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+};
+
+const normalizePartnerCoords = (partner) => {
+  const coords = partner?.location?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  let [lng, lat] = coords.map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+    const nextLat = lng;
+    const nextLng = lat;
+    lat = nextLat;
+    lng = nextLng;
+  }
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+};
+
 const MainContent = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("Food & Dining");
@@ -112,7 +141,7 @@ const MainContent = () => {
             params: {
               lat: coords.lat,
               lng: coords.lng,
-              radius: 15000,
+              radius: 10000,
               _ts: Date.now()
             }
           });
@@ -140,6 +169,12 @@ const MainContent = () => {
     const categoryToShow = String(visibleCategory?.apiCategory || '').trim();
     return partners
       .filter((partner) => String(partner?.status || '').trim() !== 'Blocked')
+      .filter((partner) => {
+        if (!coords) return true;
+        const partnerCoords = normalizePartnerCoords(partner);
+        if (!partnerCoords) return false;
+        return haversineKm(coords, partnerCoords) <= 10;
+      })
       .filter((partner) => String(partner?.businessCategory || '').trim() === categoryToShow)
       .map((partner, index) => ({
         id: partner?._id || index,
@@ -150,7 +185,7 @@ const MainContent = () => {
           ? Number(partner.customerDiscount)
           : 10,
       }));
-  }, [partners, visibleCategory]);
+  }, [partners, visibleCategory, coords]);
 
   const goToLogin = () => navigate('/login');
 

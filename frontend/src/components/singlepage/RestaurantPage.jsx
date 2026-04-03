@@ -72,16 +72,18 @@ const normalizeImageList = (items = []) =>
     })
     .filter(Boolean);
 
-const buildGalleryItems = (data = {}) => {
+const buildGalleryItems = (data = {}, extraPhotos = []) => {
   const normalizedPhotos = [
     ...normalizeImageList(data.interiorImages),
     ...normalizeImageList(data.foodImages),
     ...normalizeImageList(data.menuImages),
-    ...normalizeImageList(data.photos)
+    ...normalizeImageList(data.photos),
+    ...normalizeImageList(extraPhotos)
   ];
   const normalizedVideos = normalizeImageList(data.videos);
+  const uniquePhotos = Array.from(new Set(normalizedPhotos));
   return [
-    ...normalizedPhotos.map((src) => ({ type: 'image', src })),
+    ...uniquePhotos.map((src) => ({ type: 'image', src })),
     ...normalizedVideos.map((src) => ({ type: 'video', src }))
   ];
 };
@@ -445,7 +447,16 @@ const RestaurantPage = () => {
     return fallbackMenu;
   }, [restaurantInfo.menuSections]);
 
-  const galleryItems = useMemo(() => buildGalleryItems(restaurantInfo), [restaurantInfo]);
+  const overviewReviews = useMemo(() => reviews.slice(0, 3).map(mapReviewToCard), [reviews]);
+  const reviewCards = useMemo(() => (reviews.length ? reviews.map(mapReviewToCard) : []), [reviews]);
+  const reviewGalleryPhotos = useMemo(
+    () => reviewCards.flatMap((review) => (Array.isArray(review.photos) ? review.photos : [])),
+    [reviewCards]
+  );
+  const galleryItems = useMemo(
+    () => buildGalleryItems(restaurantInfo, reviewGalleryPhotos),
+    [restaurantInfo, reviewGalleryPhotos]
+  );
   const interiorImages = useMemo(() => normalizeImageList(restaurantInfo.interiorImages), [restaurantInfo.interiorImages]);
   const foodImages = useMemo(() => normalizeImageList(restaurantInfo.foodImages), [restaurantInfo.foodImages]);
   const menuImages = useMemo(() => normalizeImageList(restaurantInfo.menuImages), [restaurantInfo.menuImages]);
@@ -506,8 +517,6 @@ const RestaurantPage = () => {
     if (foodTypeText === 'Non-Veg') return 'nonveg';
     return '';
   })();
-  const overviewReviews = useMemo(() => reviews.slice(0, 3).map(mapReviewToCard), [reviews]);
-  const reviewCards = useMemo(() => (reviews.length ? reviews.map(mapReviewToCard) : []), [reviews]);
   const reviewCount = reviews.length;
   const displayRating = reviews.length
     ? reviews.reduce((sum, item) => sum + Number(item?.rating || 0), 0) / reviews.length

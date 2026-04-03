@@ -24,11 +24,48 @@ const normalizeImageUrl = (rawUrl) => {
   return `${base}/${path}`;
 };
 
+const toRad = (value) => (Number(value) * Math.PI) / 180;
+const haversineKm = (a, b) => {
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const h =
+    sinDLat * sinDLat +
+    Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+};
+
+const normalizePartnerCoords = (partner) => {
+  const coords = partner?.location?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  let [lng, lat] = coords.map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+    const nextLat = lng;
+    const nextLng = lat;
+    lat = nextLat;
+    lng = nextLng;
+  }
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+};
+
+const formatDistanceKm = (km) => {
+  if (!Number.isFinite(km)) return null;
+  const rounded = Math.round(km * 10) / 10;
+  const label = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${label} km`;
+};
+
 const StoresPagelist = () => {
   const navigate = useNavigate();
   const [partners, setPartners] = useState([]);
   const [partnerInfoById, setPartnerInfoById] = useState({});
   const [reviewStatsById, setReviewStatsById] = useState({});
+  const [coords, setCoords] = useState(null);
   const [activeFilters, setActiveFilters] = useState({
     rating45: false,
     petFriendly: false,
@@ -38,6 +75,35 @@ const StoresPagelist = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const reviewStatsRef = React.useRef({});
+
+  useEffect(() => {
+    const savedCoords = localStorage.getItem('tsg_user_coords');
+    if (savedCoords) {
+      try {
+        const parsed = JSON.parse(savedCoords);
+        if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng)) {
+          setCoords({ lat: parsed.lat, lng: parsed.lng });
+          return;
+        }
+      } catch (_error) {
+        // ignore
+      }
+    }
+
+    if (!navigator?.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords || {};
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+          const nextCoords = { lat: latitude, lng: longitude };
+          setCoords(nextCoords);
+          localStorage.setItem('tsg_user_coords', JSON.stringify(nextCoords));
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+    );
+  }, []);
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -139,10 +205,13 @@ const StoresPagelist = () => {
           const partnerId = String(partner?._id || '').trim();
           const info = partnerInfoById[partnerId];
           const reviewStats = reviewStatsById[partnerId];
+          const partnerCoords = normalizePartnerCoords(partner);
+          const computedDistance = coords && partnerCoords ? haversineKm(coords, partnerCoords) : null;
+          const distanceLabel = formatDistanceKm(computedDistance) || partner?.distance || '1.2 km';
           const ratingValue = Number(
             reviewStats?.count
               ? reviewStats.avg
-              : info?.rating ?? partner?.rating ?? 4.5
+              : info?.rating ?? partner?.rating ?? 0
           );
           const descriptionFromInfo = String(info?.description || '').trim();
           const descriptionFromPartner = String(partner?.description || '').trim();
@@ -164,7 +233,7 @@ const StoresPagelist = () => {
               categoryFromPartner ||
               'Best products available',
             location: partner?.area || 'Panchgani',
-            distance: partner?.distance || '1.2 km',
+            distance: distanceLabel,
             img: normalizeImageUrl(partner?.imageUrl || partner?.resImage),
             hasOffer: true,
             petFriendly:
@@ -175,7 +244,7 @@ const StoresPagelist = () => {
               String(partner?.address || '').toLowerCase().includes('outdoor')
           };
         }),
-    [partners, partnerInfoById, reviewStatsById]
+    [partners, partnerInfoById, reviewStatsById, coords]
   );
 
   const filteredRestaurants = useMemo(() => {

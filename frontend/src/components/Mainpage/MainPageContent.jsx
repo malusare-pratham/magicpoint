@@ -48,6 +48,29 @@ const haversineKm = (a, b) => {
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 };
 
+const normalizePartnerCoords = (partner) => {
+  const coords = partner?.location?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  let [lng, lat] = coords.map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  // If latitude looks out of range but longitude is valid, swap (handles old swapped data).
+  if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+    const nextLat = lng;
+    const nextLng = lat;
+    lat = nextLat;
+    lng = nextLng;
+  }
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+};
+
+const formatDistanceKm = (km) => {
+  if (!Number.isFinite(km)) return null;
+  const rounded = Math.round(km * 10) / 10;
+  const label = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${label} km`;
+};
+
 const CATEGORY_OPTIONS = ["Food & Dining", "Local Stores & Gift House", "Activities & Adventure", "Stay & Hotels"];
 
 const FilterBar = ({ activeCategory, onCategoryChange }) => {
@@ -97,18 +120,20 @@ const OfferCard = ({ item, onClick, isPressed, onPressStart, onPressEnd }) => (
     <div className="mpc-info-section">
       <div className="mpc-title-row">
         <h4 className="mpc-res-name">{item.name}</h4>
-        <div className="mpc-food-type-icons" aria-label={`Food type: ${item.foodType}`}>
+        <div className="mpc-food-type-icons" aria-label={`Rating${item.businessCategory === "Food & Dining" ? `, food type: ${item.foodType}` : ""}`}>
           <span className="mpc-rating-mini">
             <i className="fas fa-star mpc-rating-star" aria-hidden="true"></i>
             {item.rating}
           </span>
-          {item.foodType.includes("both") ? (
-            <>
-              <span className="mpc-food-type-logo veg" />
-              <span className="mpc-food-type-logo nonveg" />
-            </>
-          ) : (
-            <span className={`mpc-food-type-logo ${item.foodType.includes("non") ? "nonveg" : "veg"}`} />
+          {item.businessCategory === "Food & Dining" && (
+            item.foodType.includes("both") ? (
+              <>
+                <span className="mpc-food-type-logo veg" />
+                <span className="mpc-food-type-logo nonveg" />
+              </>
+            ) : (
+              <span className={`mpc-food-type-logo ${item.foodType.includes("non") ? "nonveg" : "veg"}`} />
+            )
           )}
         </div>
       </div>
@@ -226,7 +251,7 @@ const MainPageContent = () => {
           params: {
             lat: coords.lat,
             lng: coords.lng,
-            radius: 15000,
+            radius: 10000,
             _ts: Date.now()
           }
         });
@@ -382,14 +407,23 @@ const MainPageContent = () => {
           const businessStatus = String(p.businessStatus || "OPEN").trim().toUpperCase();
           return approvalStatus === "Active" && businessStatus === "OPEN";
         })
+        .filter((partner) => {
+          if (!coords) return true;
+          const partnerCoords = normalizePartnerCoords(partner);
+          if (!partnerCoords) return false;
+          return haversineKm(coords, partnerCoords) <= 10;
+        })
         .map((partner, index) => {
           const partnerId = String(partner?._id || "").trim();
           const info = partnerInfoById[partnerId];
           const reviewStats = reviewStatsById[partnerId];
+          const partnerCoords = normalizePartnerCoords(partner);
+          const computedDistance = coords && partnerCoords ? haversineKm(coords, partnerCoords) : null;
+          const distanceLabel = formatDistanceKm(computedDistance) || partner.distance || "1.2 km";
           const ratingValue = Number(
             reviewStats?.count
               ? reviewStats.avg
-              : info?.rating ?? partner?.rating ?? 4.5
+              : info?.rating ?? partner?.rating ?? 0
           );
           const descriptionFromInfo = String(info?.description || "").trim();
           const descriptionFromPartner = String(partner?.description || "").trim();
@@ -400,7 +434,7 @@ const MainPageContent = () => {
             id: partner._id || index,
             name: partner.restaurantName || "Partner Restaurant",
             rating: Number.isFinite(ratingValue) ? ratingValue.toFixed(1) : "0.0",
-            foodType: String(partner?.foodType || "Veg").trim().toLowerCase(),
+            foodType: String(info?.foodType ?? partner?.foodType ?? "Veg").trim().toLowerCase(),
             discount: Number.isFinite(Number(partner?.customerDiscount))
               ? Number(partner.customerDiscount)
               : 10,
@@ -411,13 +445,13 @@ const MainPageContent = () => {
               categoryFromPartner ||
               "Great food and service",
             location: partner.area || "Panchgani",
-            distance: partner.distance || "1.2 km",
+            distance: distanceLabel,
             image: normalizeImageUrl(partner.imageUrl || partner.resImage),
             businessCategory: partner.businessCategory || "Food & Dining",
             area: partner.area || "",
           };
         }),
-    [partners, partnerInfoById, reviewStatsById]
+    [partners, partnerInfoById, reviewStatsById, coords]
   );
 
   const filteredItems = useMemo(

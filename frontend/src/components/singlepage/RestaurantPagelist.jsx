@@ -23,6 +23,42 @@ const normalizeImageUrl = (rawUrl) => {
   return `${base}/${path}`;
 };
 
+const toRad = (value) => (Number(value) * Math.PI) / 180;
+const haversineKm = (a, b) => {
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const h =
+    sinDLat * sinDLat +
+    Math.cos(lat1) * Math.cos(lat2) * sinDLng * sinDLng;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+};
+
+const normalizePartnerCoords = (partner) => {
+  const coords = partner?.location?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  let [lng, lat] = coords.map(Number);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) {
+    const nextLat = lng;
+    const nextLng = lat;
+    lat = nextLat;
+    lng = nextLng;
+  }
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+};
+
+const formatDistanceKm = (km) => {
+  if (!Number.isFinite(km)) return null;
+  const rounded = Math.round(km * 10) / 10;
+  const label = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${label} km`;
+};
+
 const RestaurantPagelist = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -234,10 +270,13 @@ const RestaurantPagelist = () => {
           const partnerId = String(partner?._id || '').trim();
           const info = partnerInfoById[partnerId];
           const reviewStats = reviewStatsById[partnerId];
+          const partnerCoords = normalizePartnerCoords(partner);
+          const computedDistance = coords && partnerCoords ? haversineKm(coords, partnerCoords) : null;
+          const distanceLabel = formatDistanceKm(computedDistance) || partner?.distance || '1.2 km';
           const ratingValue = Number(
             reviewStats?.count
               ? reviewStats.avg
-              : info?.rating ?? partner?.rating ?? 4.5
+              : info?.rating ?? partner?.rating ?? 0
           );
           const descriptionFromInfo = String(info?.description || '').trim();
           const descriptionFromPartner = String(partner?.description || '').trim();
@@ -259,7 +298,7 @@ const RestaurantPagelist = () => {
               categoryFromPartner ||
               'Great food and service',
             location: partner?.area || 'Panchgani',
-            distance: partner?.distance || '1.2 km',
+            distance: distanceLabel,
             img: normalizeImageUrl(partner?.imageUrl),
             businessCategory: categoryFromPartner,
             hasOffer: true,
@@ -271,7 +310,7 @@ const RestaurantPagelist = () => {
               String(partner?.address || '').toLowerCase().includes('outdoor')
           };
         }),
-    [partners, partnerInfoById, reviewStatsById]
+    [partners, partnerInfoById, reviewStatsById, coords]
   );
 
   const filteredRestaurants = useMemo(() => {
@@ -430,18 +469,20 @@ const RestaurantPagelist = () => {
               <div className="info-section">
                 <div className="title-row">
                   <h4 className="res-name">{item.name}</h4>
-                  <div className="food-type-icons" aria-label={`Food type: ${item.foodType}`}>
+                  <div className="food-type-icons" aria-label={`Rating${item.businessCategory === 'Food & Dining' ? `, food type: ${item.foodType}` : ''}`}>
                     <span className="rl-rating-mini">
                       <i className="fas fa-star rl-rating-star" aria-hidden="true"></i>
                       {item.rating}
                     </span>
-                    {item.foodType.includes('both') ? (
-                      <>
-                        <span className="food-type-logo veg" />
-                        <span className="food-type-logo nonveg" />
-                      </>
-                    ) : (
-                      <span className={`food-type-logo ${item.foodType.includes('non') ? 'nonveg' : 'veg'}`} />
+                    {item.businessCategory === 'Food & Dining' && (
+                      item.foodType.includes('both') ? (
+                        <>
+                          <span className="food-type-logo veg" />
+                          <span className="food-type-logo nonveg" />
+                        </>
+                      ) : (
+                        <span className={`food-type-logo ${item.foodType.includes('non') ? 'nonveg' : 'veg'}`} />
+                      )
                     )}
                   </div>
                 </div>
