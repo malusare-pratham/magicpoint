@@ -197,7 +197,7 @@ const RestaurantPagelist = () => {
             params: {
               lat: coords.lat,
               lng: coords.lng,
-              radius: 15000,
+              radius: 80000,
               category: effectiveCategory
             }
           });
@@ -283,11 +283,13 @@ const RestaurantPagelist = () => {
           const addressFromPartner = String(partner?.address || '').trim();
           const categoryFromPartner = String(partner?.businessCategory || '').trim();
 
+          const rawFoodType = info?.foodType ?? partner?.foodType;
+
           return {
             id: partner?._id || index,
             name: partner?.restaurantName || 'Partner Restaurant',
             rating: Number.isFinite(ratingValue) ? ratingValue.toFixed(1) : '0.0',
-            foodType: String(partner?.foodType || 'Veg').trim().toLowerCase(),
+            foodType: String(rawFoodType || '').trim().toLowerCase(),
             discount: Number.isFinite(Number(partner?.customerDiscount))
               ? Number(partner.customerDiscount)
               : 10,
@@ -469,12 +471,12 @@ const RestaurantPagelist = () => {
               <div className="info-section">
                 <div className="title-row">
                   <h4 className="res-name">{item.name}</h4>
-                  <div className="food-type-icons" aria-label={`Rating${item.businessCategory === 'Food & Dining' ? `, food type: ${item.foodType}` : ''}`}>
+                  <div className="food-type-icons" aria-label={`Rating${item.businessCategory === 'Food & Dining' && item.foodType ? `, food type: ${item.foodType}` : ''}`}>
                     <span className="rl-rating-mini">
                       <i className="fas fa-star rl-rating-star" aria-hidden="true"></i>
                       {item.rating}
                     </span>
-                    {item.businessCategory === 'Food & Dining' && (
+                    {item.businessCategory === 'Food & Dining' && item.foodType && (
                       item.foodType.includes('both') ? (
                         <>
                           <span className="food-type-logo veg" />

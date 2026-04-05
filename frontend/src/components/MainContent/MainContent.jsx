@@ -141,7 +141,7 @@ const MainContent = () => {
             params: {
               lat: coords.lat,
               lng: coords.lng,
-              radius: 10000,
+              radius: 80000,
               _ts: Date.now()
             }
           });
@@ -173,7 +173,7 @@ const MainContent = () => {
         if (!coords) return true;
         const partnerCoords = normalizePartnerCoords(partner);
         if (!partnerCoords) return false;
-        return haversineKm(coords, partnerCoords) <= 10;
+        return haversineKm(coords, partnerCoords) <= 80;
       })
       .filter((partner) => String(partner?.businessCategory || '').trim() === categoryToShow)
       .map((partner, index) => ({

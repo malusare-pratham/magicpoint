@@ -23,10 +23,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!token) return;
 
     const fetchProfile = async () => {
       try {
@@ -40,12 +37,11 @@ const DashboardPage = () => {
       } catch (_error) {
         localStorage.removeItem("authToken");
         localStorage.removeItem("authUser");
-        navigate("/login");
       }
     };
 
     fetchProfile();
-  }, [navigate]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -53,9 +49,11 @@ const DashboardPage = () => {
     navigate("/");
   };
 
-    return (
+  const isAuthenticated = Boolean(localStorage.getItem("authToken"));
+
+  return (
     <div className="pg-root-combined">
-      <Navbar isAuthenticated onLogout={handleLogout} />
+      <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
       <Hero />
       <MainPageContent/>
       <Footer/>

@@ -121,7 +121,8 @@ const AppLayout = () => {
       
       <main style={{ minHeight: '80vh' }}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

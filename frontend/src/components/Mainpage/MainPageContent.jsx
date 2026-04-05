@@ -73,6 +73,54 @@ const formatDistanceKm = (km) => {
 
 const CATEGORY_OPTIONS = ["Food & Dining", "Local Stores & Gift House", "Activities & Adventure", "Stay & Hotels"];
 
+const normalizeCategory = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const getCanonicalCategory = (value) => {
+  const key = normalizeCategory(value);
+  if (!key) return "";
+
+  const directMap = {
+    "food dining": "Food & Dining",
+    "food and dining": "Food & Dining",
+    "dining": "Food & Dining",
+    "restaurant": "Food & Dining",
+    "restaurants": "Food & Dining",
+    "local stores gift house": "Local Stores & Gift House",
+    "local store gift house": "Local Stores & Gift House",
+    "local stores and gift house": "Local Stores & Gift House",
+    "local store and gift house": "Local Stores & Gift House",
+    "stores": "Local Stores & Gift House",
+    "store": "Local Stores & Gift House",
+    "shops": "Local Stores & Gift House",
+    "shop": "Local Stores & Gift House",
+    "activities adventure": "Activities & Adventure",
+    "activities and adventure": "Activities & Adventure",
+    "activity": "Activities & Adventure",
+    "adventure": "Activities & Adventure",
+    "stay hotels": "Stay & Hotels",
+    "stay and hotels": "Stay & Hotels",
+    "hotel": "Stay & Hotels",
+    "hotels": "Stay & Hotels",
+    "stay": "Stay & Hotels",
+    "resort": "Stay & Hotels",
+    "resorts": "Stay & Hotels",
+    "villa": "Stay & Hotels",
+    "villas": "Stay & Hotels"
+  };
+
+  if (directMap[key]) return directMap[key];
+  if (key.includes("food") || key.includes("dining") || key.includes("restaurant")) return "Food & Dining";
+  if (key.includes("store") || key.includes("shop") || key.includes("gift")) return "Local Stores & Gift House";
+  if (key.includes("activity") || key.includes("adventure") || key.includes("experience")) return "Activities & Adventure";
+  if (key.includes("stay") || key.includes("hotel") || key.includes("resort") || key.includes("villa")) return "Stay & Hotels";
+  return "";
+};
+
 const FilterBar = ({ activeCategory, onCategoryChange }) => {
   const categories = CATEGORY_OPTIONS;
 
@@ -120,12 +168,12 @@ const OfferCard = ({ item, onClick, isPressed, onPressStart, onPressEnd }) => (
     <div className="mpc-info-section">
       <div className="mpc-title-row">
         <h4 className="mpc-res-name">{item.name}</h4>
-        <div className="mpc-food-type-icons" aria-label={`Rating${item.businessCategory === "Food & Dining" ? `, food type: ${item.foodType}` : ""}`}>
+        <div className="mpc-food-type-icons" aria-label={`Rating${item.businessCategory === "Food & Dining" && item.foodType ? `, food type: ${item.foodType}` : ""}`}>
           <span className="mpc-rating-mini">
             <i className="fas fa-star mpc-rating-star" aria-hidden="true"></i>
             {item.rating}
           </span>
-          {item.businessCategory === "Food & Dining" && (
+          {item.businessCategory === "Food & Dining" && item.foodType && (
             item.foodType.includes("both") ? (
               <>
                 <span className="mpc-food-type-logo veg" />
@@ -250,7 +298,7 @@ const MainPageContent = () => {
           params: {
             lat: coords.lat,
             lng: coords.lng,
-            radius: 10000,
+            radius: 80000,
             _ts: Date.now()
           }
         });
@@ -410,7 +458,7 @@ const MainPageContent = () => {
           if (!coords) return true;
           const partnerCoords = normalizePartnerCoords(partner);
           if (!partnerCoords) return false;
-          return haversineKm(coords, partnerCoords) <= 10;
+          return haversineKm(coords, partnerCoords) <= 80;
         })
         .map((partner, index) => {
           const partnerId = String(partner?._id || "").trim();
@@ -424,16 +472,18 @@ const MainPageContent = () => {
               ? reviewStats.avg
               : info?.rating ?? partner?.rating ?? 0
           );
+          const rawFoodType = info?.foodType ?? partner?.foodType;
           const descriptionFromInfo = String(info?.description || "").trim();
           const descriptionFromPartner = String(partner?.description || "").trim();
           const addressFromPartner = String(partner?.address || "").trim();
           const categoryFromPartner = String(partner?.businessCategory || "").trim();
+          const canonicalCategory = getCanonicalCategory(categoryFromPartner);
 
           return {
             id: partner._id || index,
             name: partner.restaurantName || "Partner Restaurant",
             rating: Number.isFinite(ratingValue) ? ratingValue.toFixed(1) : "0.0",
-            foodType: String(info?.foodType ?? partner?.foodType ?? "Veg").trim().toLowerCase(),
+            foodType: String(rawFoodType || "").trim().toLowerCase(),
             discount: Number.isFinite(Number(partner?.customerDiscount))
               ? Number(partner.customerDiscount)
               : 10,
@@ -446,31 +496,29 @@ const MainPageContent = () => {
             location: partner.area || "Panchgani",
             distance: distanceLabel,
             image: normalizeImageUrl(partner.imageUrl || partner.resImage),
-            businessCategory: partner.businessCategory || "Food & Dining",
+            businessCategory: canonicalCategory || "Food & Dining",
+            categoryKey: normalizeCategory(canonicalCategory || categoryFromPartner),
             area: partner.area || "",
           };
         }),
     [partners, partnerInfoById, reviewStatsById, coords]
   );
 
-  const filteredItems = useMemo(
-    () => mappedItems.filter((item) => item.businessCategory === activeCategory),
-    [mappedItems, activeCategory]
-  );
+  const filteredItems = useMemo(() => {
+    const activeKey = normalizeCategory(activeCategory);
+    return mappedItems.filter((item) => item.categoryKey === activeKey);
+  }, [mappedItems, activeCategory]);
 
   const displayItems = filteredItems;
 
   useEffect(() => {
     if (hasManualCategory) return;
     if (!mappedItems.length) return;
-    const available = new Set(
-      mappedItems
-        .map((item) => String(item?.businessCategory || "").trim())
-        .filter(Boolean)
-    );
+    const available = new Set(mappedItems.map((item) => item.categoryKey).filter(Boolean));
     if (!available.size) return;
-    if (available.has(activeCategory)) return;
-    const next = CATEGORY_OPTIONS.find((cat) => available.has(cat)) || activeCategory;
+    const activeKey = normalizeCategory(activeCategory);
+    if (available.has(activeKey)) return;
+    const next = CATEGORY_OPTIONS.find((cat) => available.has(normalizeCategory(cat))) || activeCategory;
     if (next !== activeCategory) setActiveCategory(next);
   }, [mappedItems, activeCategory, hasManualCategory]);
 

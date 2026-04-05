@@ -46,7 +46,7 @@ function Navbar({ isAuthenticated = false, onLogout, showMobileMenu = true, fixe
           <h2 className="logo" onClick={handleLogoClick} style={{ cursor: "pointer" }}>
             tripspot
           </h2>
-          <span className="tagline">Local Savings SuperApp</span>
+          <span className="tagline">Discover. Redeem. Experience.</span>
         </div>
 
         <div className="nav-right-section">

@@ -303,6 +303,20 @@ const RestaurantPage = () => {
     }
   };
 
+  const handleRedeem = () => {
+    const redeemState = {
+      partnerId,
+      partnerName: restaurantInfo.restaurantName || 'Partner Restaurant',
+      discountPercent: restaurantInfo.discountPercent
+    };
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login', { state: { redirectTo: '/upload-bill', redirectState: redeemState } });
+      return;
+    }
+    navigate('/upload-bill', { state: redeemState });
+  };
+
   const openReviewForm = () => {
     setReviewError('');
     setActiveTab('REVIEWS');
@@ -742,15 +756,7 @@ const RestaurantPage = () => {
           <div className="rp-nav-right">
             <button
               className="rp-redeem-nav-btn"
-              onClick={() =>
-                navigate('/upload-bill', {
-                  state: {
-                    partnerId,
-                    partnerName: restaurantInfo.restaurantName || 'Partner Restaurant',
-                    discountPercent: restaurantInfo.discountPercent
-                  }
-                })
-              }
+              onClick={handleRedeem}
             >
               Redeem
             </button>
@@ -948,15 +954,7 @@ const RestaurantPage = () => {
                   <button
                     type="button"
                     className="rp-overview-redeem-btn"
-                    onClick={() =>
-                      navigate('/upload-bill', {
-                        state: {
-                          partnerId,
-                          partnerName: restaurantInfo.restaurantName || 'Partner Restaurant',
-                          discountPercent: restaurantInfo.discountPercent
-                        }
-                      })
-                    }
+                    onClick={handleRedeem}
                   >
                     Redeem Now
                   </button>
@@ -1066,11 +1064,24 @@ const RestaurantPage = () => {
                                 <div className="rp-item-info">
                                   <h3>
                                     {item.name}
-                                    {!hasMenuSections && (
-                                      <span className={`rp-food-badge ${item.type}`}>
-                                        {item.type === 'veg' ? 'Veg' : 'Non-Veg'}
-                                      </span>
-                                    )}
+                                    {!hasMenuSections && (() => {
+                                      const type = String(item.type || '').toLowerCase();
+                                      if (!type) return null;
+                                      if (type.includes('both')) {
+                                        return (
+                                          <span className="rp-food-badge both" aria-label="Veg and Non-Veg">
+                                            <span className="food-dot veg-dot" />
+                                            <span className="food-dot nonveg-dot" />
+                                          </span>
+                                        );
+                                      }
+                                      const isNonVeg = type.includes('non');
+                                      return (
+                                        <span className={`rp-food-badge ${isNonVeg ? 'nonveg' : 'veg'}`} aria-label={isNonVeg ? 'Non-Veg' : 'Veg'}>
+                                          {isNonVeg ? 'Non-Veg' : 'Veg'}
+                                        </span>
+                                      );
+                                    })()}
                                   </h3>
                                   <p>{item.desc}</p>
                                 </div>

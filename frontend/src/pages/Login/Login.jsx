@@ -25,6 +25,8 @@ function Login() {
         return { mobile: '', password: '' };
     });
     const [errorMessage, setErrorMessage] = useState('');
+    const redirectTo = location?.state?.redirectTo;
+    const redirectState = location?.state?.redirectState;
 
     useEffect(() => {
         if (!API_BASE_URL) return;
@@ -51,7 +53,11 @@ function Login() {
             const response = await axios.post(`${API_BASE_URL}/api/auth/login`, payload);
             localStorage.setItem('authToken', response.data.token);
             localStorage.setItem('authUser', JSON.stringify(response.data.user));
-            navigate('/DashboardPage');
+            if (redirectTo) {
+                navigate(redirectTo, { state: redirectState, replace: true });
+            } else {
+                navigate('/DashboardPage');
+            }
         } catch (error) {
             const message =
                 error?.response?.data?.message ||
