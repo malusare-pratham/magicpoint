@@ -43,9 +43,13 @@ function Navbar({ isAuthenticated = false, onLogout, showMobileMenu = true, fixe
     <nav className={`magic-navbar ${fixed ? "magic-navbar-fixed" : ""}`}>
       <div className="nav-container">
         <div className="nav-left">
-          <h2 className="logo" onClick={handleLogoClick} style={{ cursor: "pointer" }}>
-            tripspot
-          </h2>
+          <div className="brand-lockup" onClick={handleLogoClick} role="button" tabIndex={0} onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") handleLogoClick();
+          }}>
+            <h2 className="logo">
+              TripspotGo
+            </h2>
+          </div>
           <span className="tagline">Discover. Redeem. Experience.</span>
         </div>
 

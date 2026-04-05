@@ -31,8 +31,8 @@ const defaultInfo = {
   email: '',
   memberSince: '2026',
   logo: '',
-  restaurantName: 'Pizza Hut',
-  subtitle: 'Pizza • Italian • Fast Food',
+  restaurantName: '',
+  subtitle: '',
   foodType: '',
   description: '',
   rating: 0,
@@ -277,6 +277,7 @@ const RestaurantPage = () => {
   })();
   const partnerIdFromSelection = localStorage.getItem('selectedPartnerId') || '';
   const partnerId = partnerIdFromState || partnerIdFromQuery || partnerIdFromSelection || partnerIdFromStorage;
+  const reviewDraftFromState = location?.state?.reviewDraft;
 
   const handleBack = () => {
     navigate('/DashboardPage');
@@ -322,6 +323,18 @@ const RestaurantPage = () => {
     setActiveTab('REVIEWS');
     setIsReviewFormOpen(true);
   };
+
+  useEffect(() => {
+    if (!reviewDraftFromState) return;
+    setActiveTab('REVIEWS');
+    setIsReviewFormOpen(true);
+    if (reviewDraftFromState.rating !== undefined) setUserRating(Number(reviewDraftFromState.rating) || 0);
+    if (reviewDraftFromState.visitMonth) setVisitMonth(String(reviewDraftFromState.visitMonth));
+    if (reviewDraftFromState.visitWith) setVisitWith(String(reviewDraftFromState.visitWith));
+    if (reviewDraftFromState.text) setReviewText(String(reviewDraftFromState.text));
+    if (reviewDraftFromState.title) setReviewTitle(String(reviewDraftFromState.title));
+    if (reviewDraftFromState.agree !== undefined) setReviewAgree(Boolean(reviewDraftFromState.agree));
+  }, [reviewDraftFromState]);
 
   useEffect(() => {
     if (!isReviewFormOpen) return;
@@ -652,6 +665,27 @@ const RestaurantPage = () => {
   };
 
   const handleSubmitReview = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      navigate('/login', {
+        state: {
+          redirectTo: location?.pathname || '/restaurant',
+          redirectState: {
+            partnerId,
+            reviewDraft: {
+              rating: userRating,
+              visitMonth,
+              visitWith,
+              text: reviewText,
+              title: reviewTitle,
+              agree: reviewAgree
+            }
+          }
+        }
+      });
+      return;
+    }
+
     if (!partnerId) {
       setReviewError('Partner not selected.');
       return;
@@ -660,8 +694,13 @@ const RestaurantPage = () => {
       setReviewError('Please select a rating.');
       return;
     }
-    if (!reviewText.trim()) {
+    const trimmedReviewText = reviewText.trim();
+    if (!trimmedReviewText) {
       setReviewError('Please write your review.');
+      return;
+    }
+    if (trimmedReviewText.length < 25) {
+      setReviewError('Review must be at least 25 characters.');
       return;
     }
     if (!reviewTitle.trim()) {
@@ -700,7 +739,10 @@ const RestaurantPage = () => {
           formData.append('reviewPhotos', file);
         });
         res = await axios.post(`${API_BASE_URL}/api/restaurants/${partnerId}/reviews`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
         });
       } else {
         const payload = {
@@ -713,7 +755,9 @@ const RestaurantPage = () => {
           userId: authUser?._id || authUser?.id,
           userName: authUser?.name || authUser?.fullName || ''
         };
-        res = await axios.post(`${API_BASE_URL}/api/restaurants/${partnerId}/reviews`, payload);
+        res = await axios.post(`${API_BASE_URL}/api/restaurants/${partnerId}/reviews`, payload, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        });
       }
       const saved = res?.data?.data;
       if (saved) {
@@ -1195,9 +1239,9 @@ const RestaurantPage = () => {
                     className="rp-review-textarea"
                     placeholder="Share your experience..."
                     value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value.slice(0, 125))}
+                    onChange={(e) => setReviewText(e.target.value.slice(0, 1000))}
                   />
-                  <p className="rp-char-count">{reviewText.length}/125 min characters</p>
+                  <p className="rp-char-count">{reviewText.length}/25 min characters</p>
                 </div>
 
                 <div className="rp-review-group">
@@ -1207,9 +1251,9 @@ const RestaurantPage = () => {
                     type="text"
                     placeholder="Give us the gist of your experience"
                     value={reviewTitle}
-                    onChange={(e) => setReviewTitle(e.target.value.slice(0, 50))}
+                    onChange={(e) => setReviewTitle(e.target.value.slice(0, 125))}
                   />
-                  <p className="rp-char-count">{reviewTitle.length}/50 max characters</p>
+                  <p className="rp-char-count">{reviewTitle.length}/125 max characters</p>
                 </div>
 
                 <div className="rp-review-group">

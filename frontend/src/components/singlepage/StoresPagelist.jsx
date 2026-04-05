@@ -358,7 +358,9 @@ const StoresPagelist = () => {
             <div
               key={item.id}
               className="restaurant-card"
-              onClick={() => navigate('/restaurant', { state: { partnerId: item.id } })}
+              onClick={() =>
+                navigate(`/restaurant?partnerId=${encodeURIComponent(String(item.id || ''))}`, { state: { partnerId: item.id } })
+              }
               style={{ cursor: 'pointer' }}
             >
               <div className="img-wrapper">

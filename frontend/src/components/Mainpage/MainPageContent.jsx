@@ -215,7 +215,7 @@ const MainPageContent = () => {
     if (partnerId) {
       localStorage.setItem("selectedPartnerId", String(partnerId));
     }
-    navigate("/restaurant", { state: { partnerId } });
+    navigate(`/restaurant?partnerId=${encodeURIComponent(String(partnerId || ""))}`, { state: { partnerId } });
   };
 
   const handlePressStart = (id) => {

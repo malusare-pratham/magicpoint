@@ -29,13 +29,42 @@
 .nav-left {
   display: flex;
   flex-direction: column;
+  align-items: center;
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.brand-favicon-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: transparent;
+  filter: brightness(0) invert(1);
+  margin-right: -4px;
+}
+
+.brand-logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
 }
 
 .logo {
-  font-size: 30px; /* Slightly larger as requested */
+  font-size: 34px; /* Slightly larger as requested */
   font-weight: 900;
+  font-family: "Trebuchet MS", "Arial Rounded MT Bold", "Segoe UI", "Verdana", sans-serif;
   margin: 0;
-  line-height: 1;
+  line-height: 0.85;
   letter-spacing: -1px;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
@@ -50,9 +79,14 @@
 
 .tagline {
   font-size: 10px;
-  margin-top: -5px;
+  margin-top: -6px;
   opacity: 0.9;
   font-weight: 500;
+  font-family: "Trebuchet MS", "Arial Rounded MT Bold", "Segoe UI", "Verdana", sans-serif;
+  text-align: center;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Menu Pill Design (Darker background) */

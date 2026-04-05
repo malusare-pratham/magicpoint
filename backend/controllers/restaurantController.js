@@ -155,16 +155,16 @@ const createPartnerReview = asyncHandler(async (req, res) => {
     if (!trimmedText) {
         return res.status(400).json({ success: false, message: 'Review text is required' });
     }
-    if (trimmedText.length < 125) {
-        return res.status(400).json({ success: false, message: 'Review text must be at least 125 characters' });
+    if (trimmedText.length < 25) {
+        return res.status(400).json({ success: false, message: 'Review text must be at least 25 characters' });
     }
 
     const trimmedTitle = String(title || '').trim();
     if (!trimmedTitle) {
         return res.status(400).json({ success: false, message: 'Review title is required' });
     }
-    if (trimmedTitle.length > 50) {
-        return res.status(400).json({ success: false, message: 'Review title must be 50 characters or fewer' });
+    if (trimmedTitle.length > 125) {
+        return res.status(400).json({ success: false, message: 'Review title must be 125 characters or fewer' });
     }
 
     if (!agree) {

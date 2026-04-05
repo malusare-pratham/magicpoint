@@ -39,12 +39,12 @@ const reviewSchema = new mongoose.Schema(
         title: {
             type: String,
             trim: true,
-            maxlength: 50
+            maxlength: 125
         },
         text: {
             type: String,
             trim: true,
-            minlength: 125,
+            minlength: 25,
             maxlength: 1000
         },
         photos: {
