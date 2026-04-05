@@ -72,19 +72,52 @@ const normalizeImageList = (items = []) =>
     })
     .filter(Boolean);
 
+const toMediaMeta = (item) => {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    const src = normalizeAssetUrl(item) || item;
+    return src ? { src } : null;
+  }
+  if (typeof item === 'object') {
+    const raw = toPhotoUrl(item);
+    const src = normalizeAssetUrl(raw) || raw;
+    if (!src) return null;
+    return {
+      src,
+      uploadedBy: item.uploadedBy || item.userName || item.name || '',
+      uploadedById: item.uploadedById || item.userId || '',
+      uploadedAt: item.uploadedAt || ''
+    };
+  }
+  return null;
+};
+
+const normalizeMediaList = (items = []) =>
+  toArrayValue(items)
+    .map(toMediaMeta)
+    .filter(Boolean);
+
 const buildGalleryItems = (data = {}, extraPhotos = []) => {
+  const basePhotos = normalizeMediaList(data.photos);
+  const baseVideos = normalizeMediaList(data.videos);
   const normalizedPhotos = [
     ...normalizeImageList(data.interiorImages),
     ...normalizeImageList(data.foodImages),
     ...normalizeImageList(data.menuImages),
-    ...normalizeImageList(data.photos),
+    ...basePhotos.map((item) => item.src),
     ...normalizeImageList(extraPhotos)
   ];
-  const normalizedVideos = normalizeImageList(data.videos);
+  const normalizedVideos = baseVideos.map((item) => item.src);
   const uniquePhotos = Array.from(new Set(normalizedPhotos));
   return [
-    ...uniquePhotos.map((src) => ({ type: 'image', src })),
-    ...normalizedVideos.map((src) => ({ type: 'video', src }))
+    ...uniquePhotos.map((src) => {
+      const meta = basePhotos.find((item) => item.src === src);
+      return meta ? { type: 'image', src, meta } : { type: 'image', src };
+    }),
+    ...normalizedVideos.map((src) => {
+      const meta = baseVideos.find((item) => item.src === src);
+      return meta ? { type: 'video', src, meta } : { type: 'video', src };
+    })
   ];
 };
 
@@ -236,6 +269,13 @@ const RestaurantPage = () => {
   const recentMonths = useMemo(() => buildRecentMonths(12), []);
   const [isSavingReview, setIsSavingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const [mediaNotice, setMediaNotice] = useState('');
+  const canDeleteMedia = (item) => {
+    if (!item?.meta?.uploadedById) return false;
+    const authUser = getAuthUserFromStorage();
+    const authId = String(authUser?._id || authUser?.id || '').trim();
+    return Boolean(authId && String(item.meta.uploadedById) === authId);
+  };
   const likeUserId = useMemo(() => {
     const authUser = getAuthUserFromStorage();
     const fromAuth = String(authUser?._id || authUser?.id || '').trim();
@@ -278,6 +318,8 @@ const RestaurantPage = () => {
   const partnerIdFromSelection = localStorage.getItem('selectedPartnerId') || '';
   const partnerId = partnerIdFromState || partnerIdFromQuery || partnerIdFromSelection || partnerIdFromStorage;
   const reviewDraftFromState = location?.state?.reviewDraft;
+  const returnTabFromState = location?.state?.returnTab;
+  const mediaIntentFromState = location?.state?.mediaIntent;
 
   const handleBack = () => {
     navigate('/DashboardPage');
@@ -335,6 +377,19 @@ const RestaurantPage = () => {
     if (reviewDraftFromState.title) setReviewTitle(String(reviewDraftFromState.title));
     if (reviewDraftFromState.agree !== undefined) setReviewAgree(Boolean(reviewDraftFromState.agree));
   }, [reviewDraftFromState]);
+
+  useEffect(() => {
+    if (reviewDraftFromState) return;
+    if (returnTabFromState !== 'PHOTOS') return;
+    setActiveTab('PHOTOS');
+    if (mediaIntentFromState === 'video') {
+      setMediaNotice('You are logged in. Please reselect the video(s) to upload.');
+    } else if (mediaIntentFromState === 'image') {
+      setMediaNotice('You are logged in. Please reselect the photo(s) to upload.');
+    } else {
+      setMediaNotice('');
+    }
+  }, [returnTabFromState, mediaIntentFromState, reviewDraftFromState]);
 
   useEffect(() => {
     if (!isReviewFormOpen) return;
@@ -408,8 +463,8 @@ const RestaurantPage = () => {
           foodImages: normalizeImageList(info.foodImages),
           menuImages: normalizeImageList(info.menuImages),
           otherImages: normalizeImageList(info.otherImages),
-          photos: Array.isArray(info.photos) ? info.photos.map((src) => normalizeAssetUrl(src) || src) : [],
-          videos: Array.isArray(info.videos) ? info.videos.map((src) => normalizeAssetUrl(src) || src) : []
+          photos: Array.isArray(info.photos) ? info.photos : [],
+          videos: Array.isArray(info.videos) ? info.videos : []
         }));
 
       } catch (_error) {
@@ -439,12 +494,62 @@ const RestaurantPage = () => {
     fetchReviews();
   }, [partnerId]);
 
+  const requireAuthForMedia = (intent) => {
+    const token = localStorage.getItem('authToken');
+    if (token) return token;
+    navigate('/login', {
+      state: {
+        redirectTo: location?.pathname || '/restaurant',
+        redirectState: {
+          partnerId,
+          returnTab: 'PHOTOS',
+          mediaIntent: intent
+        }
+      }
+    });
+    return '';
+  };
+
+  const shapeMediaPayload = (items = []) =>
+    toArrayValue(items)
+      .map((entry) => {
+        if (typeof entry === 'string') return entry;
+        if (entry && typeof entry === 'object') {
+          const raw = entry.url || entry.src || entry.path || entry.secure_url || entry.url;
+          const src = normalizeAssetUrl(raw) || raw;
+          if (!src) return null;
+          return {
+            url: src,
+            uploadedBy: entry.uploadedBy || '',
+            uploadedById: entry.uploadedById || '',
+            uploadedAt: entry.uploadedAt || ''
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+  const persistGalleryMedia = async (nextPhotos, nextVideos, authToken) => {
+    if (!partnerId) return;
+    await axios.put(
+      `${API_BASE_URL}/api/admin/partner-info/${partnerId}`,
+      {
+        photos: JSON.stringify(shapeMediaPayload(nextPhotos)),
+        videos: JSON.stringify(shapeMediaPayload(nextVideos))
+      },
+      { headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined }
+    );
+  };
+
   const addFilesToGallery = async (fileList, type) => {
     const files = Array.from(fileList || []);
     if (!files.length || !partnerId) return;
+    const token = requireAuthForMedia(type === 'video' ? 'video' : 'image');
+    if (!token) return;
 
     setIsUploadingMedia(true);
     try {
+      setMediaNotice('');
       const formData = new FormData();
       formData.append('photos', JSON.stringify(Array.isArray(restaurantInfo.photos) ? restaurantInfo.photos : []));
       formData.append('videos', JSON.stringify(Array.isArray(restaurantInfo.videos) ? restaurantInfo.videos : []));
@@ -458,7 +563,10 @@ const RestaurantPage = () => {
       });
 
       const res = await axios.put(`${API_BASE_URL}/api/admin/partner-info/${partnerId}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
 
       let savedInfo = res?.data?.data;
@@ -470,8 +578,36 @@ const RestaurantPage = () => {
         savedInfo = res.data;
       }
 
-      const nextPhotos = Array.isArray(savedInfo?.photos) ? savedInfo.photos.map((src) => normalizeAssetUrl(src) || src) : [];
-      const nextVideos = Array.isArray(savedInfo?.videos) ? savedInfo.videos.map((src) => normalizeAssetUrl(src) || src) : [];
+      const authUser = getAuthUserFromStorage();
+      const uploaderName = authUser?.name || authUser?.fullName || 'You';
+      const uploaderId = authUser?._id || authUser?.id || '';
+      const prevPhotoUrls = new Set(normalizeMediaList(restaurantInfo.photos).map((item) => item.src));
+      const prevVideoUrls = new Set(normalizeMediaList(restaurantInfo.videos).map((item) => item.src));
+      const rawNextPhotos = Array.isArray(savedInfo?.photos) ? savedInfo.photos : [];
+      const rawNextVideos = Array.isArray(savedInfo?.videos) ? savedInfo.videos : [];
+      const nextPhotos = rawNextPhotos
+        .map((entry) => {
+          if (typeof entry === 'object' && entry) return entry;
+          const src = normalizeAssetUrl(entry) || entry;
+          if (!src) return null;
+          if (!prevPhotoUrls.has(src)) {
+            return { url: src, uploadedBy: uploaderName, uploadedById: uploaderId, uploadedAt: new Date().toISOString() };
+          }
+          return src;
+        })
+        .filter(Boolean);
+      const nextVideos = rawNextVideos
+        .map((entry) => {
+          if (typeof entry === 'object' && entry) return entry;
+          const src = normalizeAssetUrl(entry) || entry;
+          if (!src) return null;
+          if (!prevVideoUrls.has(src)) {
+            return { url: src, uploadedBy: uploaderName, uploadedById: uploaderId, uploadedAt: new Date().toISOString() };
+          }
+          return src;
+        })
+        .filter(Boolean);
+      await persistGalleryMedia(nextPhotos, nextVideos, token);
       setRestaurantInfo((prev) => ({
         ...prev,
         photos: nextPhotos,
@@ -479,6 +615,51 @@ const RestaurantPage = () => {
       }));
     } catch (_error) {
       // no-op
+    } finally {
+      setIsUploadingMedia(false);
+    }
+  };
+
+  const deleteGalleryItem = async (item) => {
+    if (!item || !partnerId) return;
+    const token = requireAuthForMedia('gallery');
+    if (!token) return;
+    const authUser = getAuthUserFromStorage();
+    const authId = String(authUser?._id || authUser?.id || '');
+    const ownerId = String(item?.meta?.uploadedById || '');
+    if (ownerId && authId && ownerId !== authId) {
+      setMediaNotice('Only the uploader can delete this media.');
+      return;
+    }
+
+    const nextPhotos = normalizeMediaList(restaurantInfo.photos)
+      .filter((entry) => entry.src !== item.src)
+      .map((entry) => ({
+        url: entry.src,
+        uploadedBy: entry.uploadedBy || '',
+        uploadedById: entry.uploadedById || '',
+        uploadedAt: entry.uploadedAt || ''
+      }));
+    const nextVideos = normalizeMediaList(restaurantInfo.videos)
+      .filter((entry) => entry.src !== item.src)
+      .map((entry) => ({
+        url: entry.src,
+        uploadedBy: entry.uploadedBy || '',
+        uploadedById: entry.uploadedById || '',
+        uploadedAt: entry.uploadedAt || ''
+      }));
+
+    setIsUploadingMedia(true);
+    try {
+      await persistGalleryMedia(nextPhotos, nextVideos, token);
+      setRestaurantInfo((prev) => ({
+        ...prev,
+        photos: nextPhotos,
+        videos: nextVideos
+      }));
+      setMediaNotice('Media deleted.');
+    } catch (_error) {
+      setMediaNotice('Unable to delete media right now.');
     } finally {
       setIsUploadingMedia(false);
     }
@@ -1405,10 +1586,24 @@ const RestaurantPage = () => {
                   }}
                 />
               </div>
+              {mediaNotice && <div className="rp-media-notice">{mediaNotice}</div>}
               {galleryItems.length > 0 ? (
                 <div className="rp-photo-gallery">
                   {galleryItems.map((item, index) => (
                     <div className="rp-gallery-item" key={`${item.src}-${index}`}>
+                      {item.meta?.uploadedBy && (
+                        <div className="rp-gallery-owner">{item.meta.uploadedBy}</div>
+                      )}
+                      {canDeleteMedia(item) && (
+                        <button
+                          type="button"
+                          className="rp-gallery-delete"
+                          disabled={isUploadingMedia}
+                          onClick={() => deleteGalleryItem(item)}
+                        >
+                          Delete
+                        </button>
+                      )}
                       {item.type === 'video' ? (
                         <video src={item.src} controls playsInline preload="metadata" />
                       ) : (

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, Lock, QrCode, CreditCard, CheckCircle2, Users, ArrowRight } from 'lucide-react';
 import './Signup.css';
 
@@ -46,6 +46,7 @@ const getApiErrorMessage = (error, fallbackMessage, apiBaseUrl) => {
 
 function Signup() {
     const navigate = useNavigate();
+    const location = useLocation();
     const singlePlanRef = useRef(null);
     const [membershipPlans, setMembershipPlans] = useState([]);
     const [plansLoading, setPlansLoading] = useState(true);
@@ -59,6 +60,8 @@ function Signup() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [highlightRegistration, setHighlightRegistration] = useState(false);
     const registrationRef = useRef(null);
+    const redirectTo = location?.state?.redirectTo;
+    const redirectState = location?.state?.redirectState;
 
     useEffect(() => {
         // Warm up backend on page open to reduce first submit latency (Render cold start).
@@ -164,7 +167,11 @@ function Signup() {
                 localStorage.setItem('authToken', registerResponse.data.token);
                 localStorage.setItem('authUser', JSON.stringify(registerResponse.data.user));
                 setStatusMessage('Registration completed successfully.');
-                navigate('/DashboardPage', { replace: true });
+                if (redirectTo) {
+                    navigate(redirectTo, { state: redirectState, replace: true });
+                } else {
+                    navigate('/DashboardPage', { replace: true });
+                }
                 return;
             }
 
@@ -221,7 +228,11 @@ function Signup() {
                         localStorage.setItem('authToken', verifyResponse.data.token);
                         localStorage.setItem('authUser', JSON.stringify(verifyResponse.data.user));
                         setStatusMessage('Registration and payment completed successfully.');
-                        navigate('/DashboardPage', { replace: true });
+                        if (redirectTo) {
+                            navigate(redirectTo, { state: redirectState, replace: true });
+                        } else {
+                            navigate('/DashboardPage', { replace: true });
+                        }
                     } catch (verifyError) {
                         const verifyMessage = getApiErrorMessage(
                             verifyError,
@@ -439,7 +450,14 @@ function Signup() {
                 )}
 
                     <p className="auth-footer">
-                        Already a member? <a href="/login" className="signup-login-link">Login here</a>
+                        Already a member?{' '}
+                        <Link
+                            to="/login"
+                            state={{ redirectTo, redirectState }}
+                            className="signup-login-link"
+                        >
+                            Login here
+                        </Link>
                     </p>
                 </div>
             </div>

@@ -7,6 +7,34 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const emptyMenuItem = () => ({ name: '', description: '', price: '', image: '', file: null });
 
+const normalizeAssetUrl = (rawUrl) => {
+    if (!rawUrl) return '';
+    const value = String(rawUrl).trim();
+    if (!value) return '';
+    if (/^https?:\/\//i.test(value)) return value;
+    if (!API_BASE_URL) return value;
+    return `${API_BASE_URL.replace(/\/+$/, '')}/${value.replace(/^\/+/, '')}`;
+};
+
+const getMediaSrc = (entry) => {
+    if (!entry) return '';
+    if (typeof entry === 'string') return normalizeAssetUrl(entry) || entry;
+    if (typeof entry === 'object') {
+        const raw = entry.url || entry.src || entry.path || entry.secure_url || '';
+        return normalizeAssetUrl(raw) || raw;
+    }
+    return '';
+};
+
+const normalizeMediaList = (items = []) =>
+    (Array.isArray(items) ? items : [])
+        .map((entry) => {
+            const src = getMediaSrc(entry);
+            if (!src) return null;
+            return { src, raw: entry };
+        })
+        .filter(Boolean);
+
 const defaultInfoForm = {
     email: '',
     memberSince: '2026',
@@ -55,6 +83,7 @@ const PartnerDashboard = () => {
     const [txSearch, setTxSearch] = useState('');
     const [txDate, setTxDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [lastSynced, setLastSynced] = useState(null);
+    const [galleryNotice, setGalleryNotice] = useState('');
 
     const fetchData = async (id) => {
         try {
@@ -238,6 +267,33 @@ const PartnerDashboard = () => {
     const handleLogout = () => {
         localStorage.clear();
         window.location.href = '/';
+    };
+
+    const persistGalleryMedia = async (nextPhotos, nextVideos) => {
+        if (!partnerInfo?.id) return;
+        await axios.put(`${API_BASE_URL}/api/admin/partner-info/${partnerInfo.id}`, {
+            photos: nextPhotos,
+            videos: nextVideos
+        });
+    };
+
+    const deleteGalleryItem = async (targetSrc) => {
+        if (!partnerInfo?.id || !targetSrc) return;
+        if (!window.confirm('Delete this media?')) return;
+        const nextPhotos = (infoForm.photos || []).filter((entry) => getMediaSrc(entry) !== targetSrc);
+        const nextVideos = (infoForm.videos || []).filter((entry) => getMediaSrc(entry) !== targetSrc);
+        try {
+            setGalleryNotice('');
+            await persistGalleryMedia(nextPhotos, nextVideos);
+            setInfoForm((prev) => ({
+                ...prev,
+                photos: nextPhotos,
+                videos: nextVideos
+            }));
+            setGalleryNotice('Media deleted.');
+        } catch (_err) {
+            setGalleryNotice('Unable to delete media right now.');
+        }
     };
 
     const setField = (key, value) => {
@@ -450,6 +506,9 @@ const PartnerDashboard = () => {
     const formatCurrency = (value) => `₹${Number(value || 0).toFixed(2)}`;
     const partnerCommissionPercent = Number(partnerInfo?.platformCommission || 15);
     const partnerCommissionAmount = stats.revenue * (partnerCommissionPercent / 100);
+    const galleryPhotos = normalizeMediaList(infoForm.photos).map((item) => ({ ...item, type: 'image' }));
+    const galleryVideos = normalizeMediaList(infoForm.videos).map((item) => ({ ...item, type: 'video' }));
+    const galleryItems = [...galleryPhotos, ...galleryVideos];
 
     return (
         <div className="partner-container">
@@ -680,6 +739,35 @@ const PartnerDashboard = () => {
             </div>
             <div className="partner-card">
                 <div className="card-header">
+                    <h4 className="recent-heading">Gallery Uploads</h4>
+                </div>
+                {galleryNotice && <div className="partner-gallery-notice">{galleryNotice}</div>}
+                {galleryItems.length > 0 ? (
+                    <div className="partner-gallery-grid">
+                        {galleryItems.map((item, idx) => (
+                            <div key={`${item.src}-${idx}`} className="partner-gallery-item">
+                                <button
+                                    type="button"
+                                    className="partner-gallery-delete"
+                                    onClick={() => deleteGalleryItem(item.src)}
+                                >
+                                    Delete
+                                </button>
+                                <div className="partner-gallery-tag">{item.type === 'video' ? 'Video' : 'Photo'}</div>
+                                {item.type === 'video' ? (
+                                    <video src={item.src} controls playsInline preload="metadata" />
+                                ) : (
+                                    <img src={item.src} alt="Uploaded" />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p style={{ textAlign: 'center', padding: '16px', color: '#94a3b8' }}>No gallery uploads yet.</p>
+                )}
+            </div>
+            <div className="partner-card">
+                <div className="card-header">
                     <h4 className="recent-heading">Recent Transactions</h4>
                     <div className="tx-filters">
                         <div className="tx-search">
@@ -802,6 +890,7 @@ const PartnerDashboard = () => {
 };
 
 export default PartnerDashboard;
+
 
 
 

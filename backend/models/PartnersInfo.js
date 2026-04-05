@@ -45,8 +45,8 @@ const partnersInfoSchema = new mongoose.Schema(
         foodImages: { type: [String], default: [] },
         menuImages: { type: [String], default: [] },
         otherImages: { type: [String], default: [] },
-        photos: { type: [String], default: [] },
-        videos: { type: [String], default: [] }
+        photos: { type: [mongoose.Schema.Types.Mixed], default: [] },
+        videos: { type: [mongoose.Schema.Types.Mixed], default: [] }
     },
     { timestamps: true }
 );

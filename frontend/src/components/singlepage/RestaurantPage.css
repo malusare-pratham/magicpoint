@@ -1277,12 +1277,50 @@
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
   background: #fff;
 }
+.rp-media-notice {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #92400e;
+  font-weight: 600;
+}
 .rp-gallery-item {
   break-inside: avoid;
   -webkit-column-break-inside: avoid;
   margin: 0 0 10px;
   overflow: hidden;
   position: relative;
+}
+.rp-gallery-owner {
+  position: absolute;
+  bottom: 18px;
+  left: 10px;
+  z-index: 2;
+  background: transparent;
+  color: #7c3aed;
+  padding: 2px 0;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.rp-gallery-delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  border: none;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.92);
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.rp-gallery-delete:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 .rp-gallery-item img {
   width: 100%;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Lock, LogIn, ArrowRight, ArrowLeft, ChevronLeft, Phone, Eye, EyeOff } from 'lucide-react';
 import './Login.css';
 
@@ -163,7 +163,16 @@ function Login() {
                 )}
 
                 <div className="lgn-footer-area">
-                    <p>Not a member yet? <a href="/signup" className="lgn-signup-link">Sign Up & Save <ArrowRight size={14} /></a></p>
+                    <p>
+                        Not a member yet?{' '}
+                        <Link
+                            to="/signup"
+                            state={{ redirectTo, redirectState }}
+                            className="lgn-signup-link"
+                        >
+                            Sign Up & Save <ArrowRight size={14} />
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>
