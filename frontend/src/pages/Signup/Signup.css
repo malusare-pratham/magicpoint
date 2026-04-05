@@ -46,16 +46,8 @@
 .signup-scope .brand-logo  {
     font-size: 30px;
     font-weight: 900;
-    background: linear-gradient(90deg, #6366f1, #ec4899);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #6d28d9;
     margin-bottom: 1px;
-}
-
-.signup-scope .brand-logo span  {
-    background: linear-gradient(90deg, #ec4899, #f43f5e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
 }
 
 /* 🔙 Back Button */

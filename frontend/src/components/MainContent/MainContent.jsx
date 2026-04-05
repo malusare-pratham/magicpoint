@@ -6,6 +6,10 @@ import './MainContent.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const DEFAULT_CARD_IMAGE = 'https://images.unsplash.com/photo-1600891964599-f61ba0e24092?auto=format&fit=crop&w=600&q=80';
+const CITY_OPTIONS = [
+  { label: "Panchgani", value: "Panchgani", lat: 17.9237, lng: 73.8007 },
+  { label: "Mahabaleshwar", value: "Mahabaleshwar", lat: 17.9237, lng: 73.6586 },
+];
 
 const normalizeImageUrl = (rawUrl) => {
   if (!rawUrl) return DEFAULT_CARD_IMAGE;
@@ -52,6 +56,63 @@ const normalizePartnerCoords = (partner) => {
   return { lat, lng };
 };
 
+const formatDistanceLabel = (value) => {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '';
+  const rounded = Math.round(num * 10) / 10;
+  const label = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${label} km`;
+};
+
+const normalizeCategory = (value) =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+
+const getCanonicalCategory = (value) => {
+  const key = normalizeCategory(value);
+  if (!key) return '';
+
+  const directMap = {
+    'food dining': 'Food & Dining',
+    'food and dining': 'Food & Dining',
+    'dining': 'Food & Dining',
+    'restaurant': 'Food & Dining',
+    'restaurants': 'Food & Dining',
+    'local stores gift house': 'Local Stores & Gift House',
+    'local store gift house': 'Local Stores & Gift House',
+    'local stores and gift house': 'Local Stores & Gift House',
+    'local store and gift house': 'Local Stores & Gift House',
+    'stores': 'Local Stores & Gift House',
+    'store': 'Local Stores & Gift House',
+    'shops': 'Local Stores & Gift House',
+    'shop': 'Local Stores & Gift House',
+    'activities adventure': 'Activities & Adventure',
+    'activities and adventure': 'Activities & Adventure',
+    'activity': 'Activities & Adventure',
+    'adventure': 'Activities & Adventure',
+    'stay hotels': 'Stay & Hotels',
+    'stay and hotels': 'Stay & Hotels',
+    'hotel': 'Stay & Hotels',
+    'hotels': 'Stay & Hotels',
+    'stay': 'Stay & Hotels',
+    'resort': 'Stay & Hotels',
+    'resorts': 'Stay & Hotels',
+    'villa': 'Stay & Hotels',
+    'villas': 'Stay & Hotels'
+  };
+
+  if (directMap[key]) return directMap[key];
+  if (key.includes('food') || key.includes('dining') || key.includes('restaurant')) return 'Food & Dining';
+  if (key.includes('store') || key.includes('shop') || key.includes('gift')) return 'Local Stores & Gift House';
+  if (key.includes('activity') || key.includes('adventure') || key.includes('experience')) return 'Activities & Adventure';
+  if (key.includes('stay') || key.includes('hotel') || key.includes('resort') || key.includes('villa')) return 'Stay & Hotels';
+  return '';
+};
+
 const MainContent = () => {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("Food & Dining");
@@ -95,12 +156,21 @@ const MainContent = () => {
       }
     }
 
+    if (!fallbackCoords) {
+      const savedCity = localStorage.getItem('tsg_selected_city');
+      const match = CITY_OPTIONS.find((city) => city.value === savedCity);
+      if (match) {
+        fallbackCoords = { lat: match.lat, lng: match.lng };
+      }
+    }
+
     if (navigator?.geolocation && savedUseGps !== 'false') {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const { latitude, longitude } = pos.coords || {};
           if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
             setCoords({ lat: latitude, lng: longitude });
+            localStorage.setItem('tsg_user_coords', JSON.stringify({ lat: latitude, lng: longitude }));
             return;
           }
           if (fallbackCoords) setCoords(fallbackCoords);
@@ -119,12 +189,18 @@ const MainContent = () => {
       const nextCoords = detail.coords && Number.isFinite(detail.coords.lat) && Number.isFinite(detail.coords.lng)
         ? { lat: Number(detail.coords.lat), lng: Number(detail.coords.lng) }
         : null;
+      const nextCity = String(detail.city || '').trim();
       const nextUseGps = typeof detail.useGps === 'boolean' ? detail.useGps : undefined;
       if (nextCoords) {
         setCoords(nextCoords);
+        localStorage.setItem('tsg_user_coords', JSON.stringify(nextCoords));
+      }
+      if (nextCity) {
+        localStorage.setItem('tsg_selected_city', nextCity);
       }
       if (nextUseGps !== undefined) {
         setUseGps(nextUseGps);
+        localStorage.setItem('tsg_use_gps', String(nextUseGps));
       }
     };
 
@@ -167,24 +243,45 @@ const MainContent = () => {
 
   const visibleItems = useMemo(() => {
     const categoryToShow = String(visibleCategory?.apiCategory || '').trim();
+    const activeKey = normalizeCategory(categoryToShow);
     return partners
       .filter((partner) => String(partner?.status || '').trim() !== 'Blocked')
       .filter((partner) => {
         if (!coords) return true;
+        if (partner?.distance) return true;
         const partnerCoords = normalizePartnerCoords(partner);
-        if (!partnerCoords) return false;
+        if (!partnerCoords) return true;
         return haversineKm(coords, partnerCoords) <= 80;
       })
-      .filter((partner) => String(partner?.businessCategory || '').trim() === categoryToShow)
-      .map((partner, index) => ({
-        id: partner?._id || index,
-        name: partner?.restaurantName || 'Partner Restaurant',
-        area: partner?.area || 'Panchgani',
-        img: normalizeImageUrl(partner?.imageUrl || partner?.resImage),
-        discount: Number.isFinite(Number(partner?.customerDiscount))
-          ? Number(partner.customerDiscount)
-          : 10,
-      }));
+      .filter((partner) => {
+        const canonical = getCanonicalCategory(partner?.businessCategory || '');
+        const partnerKey = normalizeCategory(canonical || partner?.businessCategory || '');
+        return partnerKey === activeKey;
+      })
+      .map((partner, index) => {
+        const parsedDistance = typeof partner?.distance === 'string'
+          ? Number.parseFloat(partner.distance)
+          : Number(partner?.distance);
+        const partnerCoords = coords ? normalizePartnerCoords(partner) : null;
+        const distanceKm = Number.isFinite(parsedDistance)
+          ? parsedDistance
+          : coords && partnerCoords
+            ? haversineKm(coords, partnerCoords)
+            : Number.POSITIVE_INFINITY;
+        return {
+          id: partner?._id || index,
+          name: partner?.restaurantName || 'Partner Restaurant',
+          area: partner?.area || 'Panchgani',
+          img: normalizeImageUrl(partner?.imageUrl || partner?.resImage),
+          discount: Number.isFinite(Number(partner?.customerDiscount))
+            ? Number(partner.customerDiscount)
+            : 10,
+          distanceKm,
+          distanceLabel: formatDistanceLabel(partner?.distance || distanceKm),
+        };
+      })
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+      ;
   }, [partners, visibleCategory, coords]);
 
   const goToLogin = () => navigate('/login');
@@ -232,6 +329,9 @@ const MainContent = () => {
                       <MapPin size={12} />
                       {item.area}
                     </span>
+                    {item.distanceLabel && (
+                      <span className="mc-distance">{item.distanceLabel}</span>
+                    )}
                   </span>
                 </div>
               </div>

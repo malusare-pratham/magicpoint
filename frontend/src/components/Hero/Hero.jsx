@@ -5,6 +5,7 @@ const CITY_OPTIONS = [
   { label: "Panchgani", value: "Panchgani", lat: 17.9237, lng: 73.8007 },
   { label: "Mahabaleshwar", value: "Mahabaleshwar", lat: 17.9237, lng: 73.6586 },
 ];
+const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_KEY || "";
 
 const toRad = (value) => (Number(value) * Math.PI) / 180;
 const haversineKm = (a, b) => {
@@ -20,6 +21,20 @@ const haversineKm = (a, b) => {
   return 2 * 6371 * Math.asin(Math.sqrt(h));
 };
 
+const pickLocationLabel = (entry) => {
+  if (!entry) return "";
+  const city =
+    entry.city ||
+    entry.town ||
+    entry.village ||
+    entry.suburb ||
+    entry.district ||
+    entry.county;
+  const state = entry.state || entry.region;
+  if (city && state && city !== state) return `${city}, ${state}`;
+  return city || state || entry.country || "";
+};
+
 function Hero() {
   const [selectedCity, setSelectedCity] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
@@ -32,9 +47,37 @@ function Hero() {
 
   useEffect(() => {
     const savedCity = localStorage.getItem("tsg_selected_city");
+    const savedUseGps = localStorage.getItem("tsg_use_gps");
+    const savedCoords = localStorage.getItem("tsg_user_coords");
     if (savedCity) {
       setSelectedCity(savedCity);
       setLocationQuery(savedCity);
+    }
+    if (savedUseGps === "true" && savedCoords) {
+      try {
+        const parsed = JSON.parse(savedCoords);
+        if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng)) {
+          if (!GEOAPIFY_KEY) {
+            setLocationQuery("Current location");
+          } else {
+            const fetchSaved = async () => {
+              try {
+                const res = await fetch(
+                  `https://api.geoapify.com/v1/geocode/reverse?lat=${parsed.lat}&lon=${parsed.lng}&format=json&apiKey=${GEOAPIFY_KEY}`
+                );
+                const data = await res.json();
+                const label = pickLocationLabel(data?.results?.[0]);
+                if (label) setLocationQuery(label);
+              } catch (_error) {
+                setLocationQuery("Current location");
+              }
+            };
+            fetchSaved();
+          }
+        }
+      } catch (_error) {
+        // ignore
+      }
     }
   }, []);
 
@@ -82,6 +125,9 @@ function Hero() {
     }
     setLocating(true);
     setLocationError("");
+    if (!GEOAPIFY_KEY) {
+      setLocationError("Missing Geoapify API key.");
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords || {};
@@ -96,12 +142,27 @@ function Hero() {
           distance: haversineKm(current, city),
         })).sort((a, b) => a.distance - b.distance);
         const nearest = ranked[0];
+
+        const updateLocationLabel = async () => {
+          if (!GEOAPIFY_KEY) return;
+          try {
+            const res = await fetch(
+              `https://api.geoapify.com/v1/geocode/reverse?lat=${current.lat}&lon=${current.lng}&format=json&apiKey=${GEOAPIFY_KEY}`
+            );
+            const data = await res.json();
+            const label = pickLocationLabel(data?.results?.[0]);
+            if (label) setLocationQuery(label);
+          } catch (_error) {
+            // fallback handled below
+          }
+        };
+
         if (nearest && nearest.distance <= 80) {
           localStorage.setItem("tsg_use_gps", "true");
           const coords = { lat: current.lat, lng: current.lng };
           localStorage.setItem("tsg_user_coords", JSON.stringify(coords));
           setSelectedCity(nearest.value);
-          setLocationQuery("Current location");
+          setLocationQuery(nearest.value);
           localStorage.setItem("tsg_selected_city", nearest.value);
           window.dispatchEvent(
             new CustomEvent("tsg-location-change", { detail: { city: nearest.value, coords, useGps: true } })
@@ -117,6 +178,7 @@ function Hero() {
           setLocationQuery("Current location");
           setLocationError("Out of service area. Please select manually.");
         }
+        updateLocationLabel();
         setLocating(false);
       },
       () => {
@@ -140,7 +202,9 @@ function Hero() {
       <div className="hero-location-label">POPULAR LOCALITIES</div>
       <div className="hero-location-list">
         {CITY_OPTIONS.filter((city) =>
-          String(city.label).toLowerCase().includes(locationQuery.trim().toLowerCase())
+          String(city.label).toLowerCase().includes(
+            (locationQuery.trim().toLowerCase() === "current location" ? "" : locationQuery.trim().toLowerCase())
+          )
         ).map((city) => (
           <button
             type="button"
@@ -152,7 +216,9 @@ function Hero() {
           </button>
         ))}
         {CITY_OPTIONS.filter((city) =>
-          String(city.label).toLowerCase().includes(locationQuery.trim().toLowerCase())
+          String(city.label).toLowerCase().includes(
+            (locationQuery.trim().toLowerCase() === "current location" ? "" : locationQuery.trim().toLowerCase())
+          )
         ).length === 0 && (
           <div className="hero-location-empty">No locations found</div>
         )}

@@ -321,10 +321,6 @@ const RestaurantPage = () => {
   const returnTabFromState = location?.state?.returnTab;
   const mediaIntentFromState = location?.state?.mediaIntent;
 
-  const handleBack = () => {
-    navigate('/DashboardPage');
-  };
-
   const handleShare = async () => {
     const shareData = {
       title: restaurantInfo.restaurantName || 'Restaurant',
@@ -346,6 +342,10 @@ const RestaurantPage = () => {
     }
   };
 
+  const handleBack = () => {
+    navigate('/DashboardPage');
+  };
+
   const handleRedeem = () => {
     const redeemState = {
       partnerId,
@@ -354,10 +354,10 @@ const RestaurantPage = () => {
     };
     const token = localStorage.getItem('authToken');
     if (!token) {
-      navigate('/login', { state: { redirectTo: '/upload-bill', redirectState: redeemState } });
+      navigate('/login', { state: { redirectTo: '/verify-otp', redirectState: redeemState } });
       return;
     }
-    navigate('/upload-bill', { state: redeemState });
+    navigate('/verify-otp', { state: redeemState });
   };
 
   const openReviewForm = () => {
@@ -972,7 +972,7 @@ const RestaurantPage = () => {
             <button className="rp-back-btn" onClick={handleBack}>
               <ArrowLeft size={20} />
             </button>
-            <div className="rp-logo">Tripspotgos</div>
+            <div className="rp-logo">TripspotGo</div>
           </div>
           <div className="rp-search-bar">
             <Search className="rp-s-icon" size={16} />

@@ -77,7 +77,7 @@ function Login() {
 
             <div className="lgn-glass-card">
                 <div className="lgn-header-section">
-                    <div className="lgn-brand-logo">Trip<span>spot</span></div>
+                    <div className="lgn-brand-logo">TripspotGo</div>
                     {!isForgot ? (
                         <p className="lgn-subtitle">Login to access your premium dashboard</p>
                     ) : (

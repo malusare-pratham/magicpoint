@@ -23,6 +23,7 @@ const initialForm = {
 };
 
 const AdminDashboard = () => {
+    const GEOAPIFY_KEY = import.meta.env.VITE_GEOAPIFY_KEY || '';
     const [view, setView] = useState('list');
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [partnerCategoryFilter, setPartnerCategoryFilter] = useState('All Categories');
@@ -198,21 +199,63 @@ const AdminDashboard = () => {
         }
     }, [view]);
 
+    const parseLatLngFromQuery = (query) => {
+        if (!query) return null;
+        const trimmed = String(query).trim();
+        const coordMatch = trimmed.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+        if (coordMatch) {
+            const lat = Number(coordMatch[1]);
+            const lng = Number(coordMatch[2]);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+        }
+
+        const atMatch = trimmed.match(/@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+        if (atMatch) {
+            const lat = Number(atMatch[1]);
+            const lng = Number(atMatch[2]);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+        }
+
+        const queryMatch = trimmed.match(/[?&]query=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/);
+        if (queryMatch) {
+            const lat = Number(queryMatch[1]);
+            const lng = Number(queryMatch[2]);
+            if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+        }
+
+        return null;
+    };
+
     const handleLocationSearch = async (event) => {
-        event.preventDefault();
+        if (event?.preventDefault) event.preventDefault();
         const query = String(locationQuery || '').trim();
         if (!query) return;
         setLocationError('');
         setGeocoding(true);
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-            const response = await fetch(url, {
-                headers: { 'Accept-Language': 'en' }
-            });
-            const data = await response.json();
-            const hit = Array.isArray(data) && data[0] ? data[0] : null;
-            const lat = Number(hit?.lat);
-            const lng = Number(hit?.lon);
+            let lat = null;
+            let lng = null;
+            const directCoords = parseLatLngFromQuery(query);
+            if (directCoords) {
+                lat = directCoords.lat;
+                lng = directCoords.lng;
+            } else if (GEOAPIFY_KEY) {
+                const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&limit=1&format=json&apiKey=${GEOAPIFY_KEY}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                const hit = Array.isArray(data?.results) && data.results[0] ? data.results[0] : null;
+                lat = Number(hit?.lat);
+                lng = Number(hit?.lon);
+            } else {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+                const response = await fetch(url, {
+                    headers: { 'Accept-Language': 'en' }
+                });
+                const data = await response.json();
+                const hit = Array.isArray(data) && data[0] ? data[0] : null;
+                lat = Number(hit?.lat);
+                lng = Number(hit?.lon);
+            }
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
                 setLocationError('Location not found. Try a more specific address.');
                 return;
@@ -1316,17 +1359,20 @@ const AdminDashboard = () => {
                                 </div>
                                 <div className="form-field form-field--full">
                                     <label>Pick Location (Click to drop pin)</label>
-                                    <form className="admin-location-search" onSubmit={handleLocationSearch}>
+                                    <div className="admin-location-search">
                                         <input
                                             type="text"
                                             placeholder="Search location (e.g. Hotel Ravine, Panchgani)"
                                             value={locationQuery}
                                             onChange={(e) => setLocationQuery(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleLocationSearch(e);
+                                            }}
                                         />
-                                        <button type="submit" disabled={geocoding}>
+                                        <button type="button" disabled={geocoding} onClick={handleLocationSearch}>
                                             {geocoding ? 'Searching...' : 'Search'}
                                         </button>
-                                    </form>
+                                    </div>
                                     {locationError && <div className="admin-location-error">{locationError}</div>}
                                     <div className="admin-map-wrap">
                                         <div ref={mapContainerRef} className="admin-map"></div>

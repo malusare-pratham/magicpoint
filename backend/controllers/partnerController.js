@@ -55,7 +55,9 @@ exports.getNearbyPartners = async (req, res) => {
         ]);
 
         let roadDistances = null;
-        if (orsApiKey && results.length > 0) {
+        let orsError = null;
+        const orsKey = String(orsApiKey || '').trim();
+        if (orsKey && results.length > 0) {
             try {
                 const origin = [Number(lng), Number(lat)];
                 const destinations = results.map((partner) => {
@@ -88,7 +90,7 @@ exports.getNearbyPartners = async (req, res) => {
                             },
                             {
                                 headers: {
-                                    Authorization: orsApiKey,
+                                    Authorization: orsKey,
                                     'Content-Type': 'application/json'
                                 },
                                 timeout: 8000
@@ -107,6 +109,10 @@ exports.getNearbyPartners = async (req, res) => {
                 }
             } catch (_error) {
                 roadDistances = null;
+                const status = _error?.response?.status;
+                const statusText = _error?.response?.statusText;
+                const message = _error?.message || 'ORS request failed';
+                orsError = status ? `${status} ${statusText || ''}`.trim() : message;
             }
         }
 
@@ -122,6 +128,9 @@ exports.getNearbyPartners = async (req, res) => {
             };
         });
 
+        if (String(req.query.debug || '') === '1' && orsError) {
+            return res.status(200).json({ data: shaped, orsError });
+        }
         return res.status(200).json(shaped);
     } catch (error) {
         return res.status(500).json({ message: 'Error fetching nearby partners', error: error.message });

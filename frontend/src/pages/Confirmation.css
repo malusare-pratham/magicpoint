@@ -7,6 +7,20 @@
     padding: 20px;
 }
 
+.conf-scope .conf-mobile-navbar {
+    display: none;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    margin-top: 0;
+}
+
+.conf-scope .conf-mobile-navbar .nav-container {
+    width: 100%;
+    max-width: none;
+    padding: 0 12px;
+}
+
 /* Navigation */
 .conf-scope .conf-top-nav  {
     display: flex;
@@ -177,6 +191,17 @@
 
 /* Responsive */
 @media (max-width: 480px) {
+    .conf-scope.conf-page-container {
+        padding-top: 0;
+    }
+    .conf-scope .conf-mobile-navbar {
+        display: block;
+        margin-bottom: 16px;
+    }
+
+    .conf-scope .conf-top-nav {
+        display: none;
+    }
     .conf-scope .conf-card  { padding: 20px; }
     .conf-scope .saving-value  { font-size: 2rem; }
     .conf-scope .success-title  { font-size: 1.5rem; }

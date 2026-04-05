@@ -2,24 +2,47 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './VerifyOTP.css';
+import Navbar from '../components/Navbar/Navbar';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
-  const otpRefs = useRef([]);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [approvalRequest, setApprovalRequest] = useState(null);
+  const [billAmountInput, setBillAmountInput] = useState('');
+  const billAmountRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const billData = location?.state || {};
-  const mergedData = billData;
-  const partnerName = String(mergedData?.partnerName || 'The Grand Hotel Panchgani');
-  const billAmount = Number(mergedData?.billAmount) || 50000;
-  const discountPercent = Number(mergedData?.discountPercent) || 10;
-  const discountAmount = Number(mergedData?.discountAmount) || (billAmount * discountPercent) / 100;
-  const finalAmount = Number(mergedData?.finalAmount) || (billAmount - discountAmount);
+  const partnerName = String(billData?.partnerName || 'Partner Restaurant');
+  const partnerId = String(billData?.partnerId || '');
+  const discountPercent = Number(billData?.discountPercent) || 10;
+
+  useEffect(() => {
+    if (billData?.billAmount && !billAmountInput) {
+      setBillAmountInput(String(billData.billAmount));
+    }
+  }, [billData?.billAmount, billAmountInput]);
+
+  useEffect(() => {
+    billAmountRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const updateIsMobile = () => {
+      if (typeof window === 'undefined') return;
+      setIsMobile(window.innerWidth <= 500);
+    };
+    updateIsMobile();
+    window.addEventListener('resize', updateIsMobile);
+    return () => window.removeEventListener('resize', updateIsMobile);
+  }, []);
+
+  const billAmount = Number(billAmountInput) || 0;
+  const discountAmount = billAmount > 0 ? (billAmount * discountPercent) / 100 : 0;
+  const finalAmount = billAmount - discountAmount;
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat('en-IN', {
@@ -34,13 +57,12 @@ const VerifyOTP = () => {
       navigate(-1);
       return;
     }
-    navigate('/upload-bill');
+    navigate('/DashboardPage');
   };
 
   const handleVerify = () => {
-    const otp = otpValues.join('');
-    if (otp.length !== 6) {
-      alert('Please enter complete 6 digit OTP.');
+    if (!billAmount || billAmount <= 0) {
+      alert('Please enter bill amount first.');
       return;
     }
 
@@ -51,9 +73,8 @@ const VerifyOTP = () => {
       return;
     }
 
-    if (!mergedData?.partnerId || !mergedData?.billFile) {
-      alert('Bill data missing. Please upload bill again.');
-      navigate('/upload-bill');
+    if (!partnerId) {
+      alert('Partner is missing. Please go back and try again.');
       return;
     }
 
@@ -63,12 +84,12 @@ const VerifyOTP = () => {
       status: 'Pending',
       message: 'Approval request is being sent to partner...'
     });
+
     const formData = new FormData();
-    formData.append('partnerId', String(mergedData.partnerId));
+    formData.append('partnerId', String(partnerId));
     formData.append('billAmount', String(billAmount));
     formData.append('discountAmount', String(discountAmount));
     formData.append('approvalMode', 'partnerApproval');
-    formData.append('billImage', mergedData.billFile);
 
     const authHeaders = {
       Authorization: `Bearer ${token}`,
@@ -119,6 +140,22 @@ const VerifyOTP = () => {
         message: 'Approval request sent. Waiting for partner confirmation...'
       });
     }).catch((error) => {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('authUser');
+        navigate('/login', {
+          state: {
+            redirectTo: '/verify-otp',
+            redirectState: {
+              partnerId,
+              partnerName,
+              discountPercent,
+              billAmount: billAmountInput
+            }
+          }
+        });
+        return;
+      }
       setApprovalRequest({
         billId: '',
         status: 'Rejected',
@@ -166,11 +203,25 @@ const VerifyOTP = () => {
           setApprovalRequest((prev) => ({
             ...(prev || {}),
             status: 'Rejected',
-            message: 'Partner rejected this bill. Please upload again.'
+            message: 'Partner rejected this request. Please try again.'
           }));
         }
-      } catch (_error) {
-        // Polling should be silent.
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('authUser');
+          navigate('/login', {
+            state: {
+              redirectTo: '/verify-otp',
+              redirectState: {
+                partnerId,
+                partnerName,
+                discountPercent,
+                billAmount: billAmountInput
+              }
+            }
+          });
+        }
       }
     };
 
@@ -179,32 +230,26 @@ const VerifyOTP = () => {
     return () => clearInterval(intervalId);
   }, [approvalRequest?.billId, approvalRequest?.status, billAmount, discountAmount, discountPercent, finalAmount, navigate, partnerName]);
 
-  const handleOtpChange = (index, value) => {
-    const nextValue = String(value || '').replace(/\D/g, '').slice(-1);
-    setOtpValues((prev) => {
-      const next = [...prev];
-      next[index] = nextValue;
-      return next;
-    });
-    if (nextValue && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
-  };
 
-  const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
+  const isAuthenticated = Boolean(localStorage.getItem('authToken'));
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
+    navigate('/');
   };
 
   return (
     <div className="otp-page-container otp-scope">
-      <div className="otp-top-nav">
-        <div className="brand-logo">
-          <span className="logo-magic">Trip</span>
-          <span className="logo-point">spot</span>
+      {isMobile && (
+        <div className="otp-mobile-navbar">
+          <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
         </div>
-
+      )}
+      <div className="otp-top-nav">
+        <div className="brand-logo otp-brand-top">
+          <span className="logo-tripspotgo">TripspotGo</span>
+        </div>
         <button className="otp-back-btn" onClick={handleBack}>
           <span>Back</span>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -215,12 +260,31 @@ const VerifyOTP = () => {
       </div>
 
       <div className="otp-card">
+        <div className="brand-logo otp-brand-inside">
+          <span className="logo-tripspotgo">TripspotGo</span>
+        </div>
         <div className="otp-header">
           <div className="shield-icon-circle">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
-          <h1 className="main-otp-heading">Verify OTP</h1>
-          <p className="sub-otp-text">Enter the 6-digit code sent to your phone</p>
+          <h1 className="main-otp-heading">Redeem Now</h1>
+          <p className="sub-otp-text">Instant Savings • Instant Approval</p>
+        </div>
+
+        <div className="otp-amount-group">
+          <label className="otp-amount-label">Bill Amount</label>
+          <div className="otp-amount-wrapper">
+            <span className="otp-currency-symbol">₹</span>
+            <input
+              type="number"
+              placeholder="Enter bill amount"
+              className="otp-amount-input"
+              min="1"
+              ref={billAmountRef}
+              value={billAmountInput}
+              onChange={(e) => setBillAmountInput(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="bill-summary-card">
@@ -243,36 +307,9 @@ const VerifyOTP = () => {
         </div>
 
         <div className="otp-input-section">
-          <p className="enter-otp-label">Enter OTP</p>
-          <div className="otp-box-wrapper">
-            {[1, 2, 3, 4, 5, 6].map((index) => (
-              <input
-                key={index}
-                ref={(el) => { otpRefs.current[index - 1] = el; }}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete={index === 1 ? 'one-time-code' : 'off'}
-                maxLength="1"
-                className="otp-box"
-                value={otpValues[index - 1]}
-                onChange={(e) => handleOtpChange(index - 1, e.target.value)}
-                onKeyDown={(e) => handleOtpKeyDown(index - 1, e)}
-              />
-            ))}
-          </div>
           <button className="verify-btn" onClick={handleVerify} disabled={isSubmittingApproval || approvalRequest?.status === 'Pending'}>
             {isSubmittingApproval ? 'Submitting...' : approvalRequest?.status === 'Pending' ? 'Waiting for Partner Approval' : 'Verify & Redeem Discount'}
           </button>
-          <div className="resend-wrapper">
-            <span>Didn't receive the code?</span>
-            <button className="resend-link">Resend OTP</button>
-          </div>
-        </div>
-
-        <div className="secure-note">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <p>We use OTP verification to ensure your discount is applied securely.</p>
         </div>
 
         {approvalRequest ? (

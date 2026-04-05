@@ -199,6 +199,13 @@
   line-height: 1;
 }
 
+.mc-distance {
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+  flex-shrink: 0;
+}
+
 .mc-item-name {
   font-size: 1.08rem;
   font-weight: 700;

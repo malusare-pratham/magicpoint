@@ -321,9 +321,7 @@ function Signup() {
                 <div className="auth-card signup-card">
 
                 <div className="auth-header">
-                    <div className="brand-logo">
-                        Trip<span>spot</span>
-                    </div>
+                    <div className="brand-logo">TripspotGo</div>
                     <h2>Create Your Free Account</h2>
                     <p>Sign up to unlock 500+ partner discounts</p>
                 </div>

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
 import './RestaurantPagelist.css';
+import Navbar from '../Navbar/Navbar';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const DEFAULT_RESTAURANT_IMAGE = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80';
@@ -75,6 +76,7 @@ const RestaurantPagelist = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const reviewStatsRef = React.useRef({});
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const savedCoords = localStorage.getItem('tsg_user_coords');
@@ -215,6 +217,24 @@ const RestaurantPagelist = () => {
     const refreshTimer = setInterval(fetchPartners, 10000);
     return () => clearInterval(refreshTimer);
   }, [coords, effectiveCategory]);
+
+  useEffect(() => {
+    const updateIsMobile = () => {
+      if (typeof window === 'undefined') return;
+      setIsMobile(window.innerWidth <= 500);
+    };
+    updateIsMobile();
+    window.addEventListener('resize', updateIsMobile);
+    return () => window.removeEventListener('resize', updateIsMobile);
+  }, []);
+
+  const isAuthenticated = Boolean(localStorage.getItem('authToken'));
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
+    navigate('/');
+  };
 
   const pageLabels = useMemo(() => {
     const category = String(effectiveCategory || '').trim();
@@ -380,6 +400,11 @@ const RestaurantPagelist = () => {
 
   return (
     <div className="zomato-container">
+      {isMobile && (
+        <div className="rl-mobile-navbar">
+          <Navbar isAuthenticated={isAuthenticated} onLogout={handleLogout} />
+        </div>
+      )}
       <div className="rl-top-nav">
         <button
           type="button"

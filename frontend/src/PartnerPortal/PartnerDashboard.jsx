@@ -588,18 +588,6 @@ const PartnerDashboard = () => {
                                     </div>
                                 </div>
                                 <div className="pending-right">
-                                    <button
-                                        type="button"
-                                        className="pending-preview-btn"
-                                        onClick={() => bill.billImage && window.open(bill.billImage, '_blank', 'noopener,noreferrer')}
-                                        disabled={!bill.billImage}
-                                    >
-                                        <span className="preview-icon-wrap">
-                                            <Eye size={14} />
-                                        </span>
-                                        Bill Preview
-                                        <ExternalLink size={13} />
-                                    </button>
                                     <div className="approval-actions">
                                         <button type="button" className="approve-btn" onClick={() => reviewPendingBill(bill._id, 'approve')}>
                                             <CheckCircle2 size={14} /> Approve

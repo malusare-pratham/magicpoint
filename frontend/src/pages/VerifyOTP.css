@@ -3,10 +3,24 @@
     min-height: 100vh;
     background: #f8fafc;
     display: flex;
-    flex-direction: column; /* Content वरून खाली लावण्यासाठी */
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 20px;
+}
+
+.otp-scope .otp-mobile-navbar {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+.otp-scope .otp-mobile-navbar .nav-container {
+    width: 100%;
+    max-width: none;
+    padding: 0 12px;
 }
 
 /* --- Top Navigation (Logo Left & Back Button Right) --- */
@@ -15,7 +29,7 @@
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    max-width: 500px; /* कार्डच्या रुंदीशी मॅच करण्यासाठी */
+    max-width: 500px;
     margin-bottom: 20px;
 }
 
@@ -26,8 +40,19 @@
     letter-spacing: -0.5px;
 }
 
-.otp-scope .logo-magic  { color: #411bbf; }
-.otp-scope .logo-point  { color: #ff4791; }
+.otp-scope .logo-tripspotgo { color: #6d28d9; }
+
+.otp-scope .otp-brand-inside {
+    position: absolute;
+    top: 16px;
+    left: 18px;
+}
+
+@media (min-width: 501px) {
+    .otp-scope .otp-brand-inside {
+        display: none;
+    }
+}
 
 /* Back Button Styling */
 .otp-scope .otp-back-btn  {
@@ -48,7 +73,7 @@
 
 .otp-scope .otp-back-btn:hover  {
     background: #f1f5f9;
-    transform: translateX(3px); /* उजवीकडे थोडा इफेक्ट */
+    transform: translateX(3px);
 }
 
 /* --- OTP Card --- */
@@ -57,8 +82,9 @@
     max-width: 500px;
     width: 100%;
     border-radius: 30px;
-    padding: 40px;
+    padding: 28px 40px 40px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+    position: relative;
 }
 
 /* --- Header Section --- */
@@ -71,7 +97,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 20px;
+    margin: 8px auto 16px;
 }
 
 .otp-scope .main-otp-heading  {
@@ -86,7 +112,60 @@
     text-align: center;
     color: #64748b;
     font-size: 0.95rem;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
+}
+
+/* --- Bill Amount Input --- */
+.otp-scope .otp-amount-group {
+    margin-bottom: 18px;
+}
+
+.otp-scope .otp-amount-label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.otp-scope .otp-amount-wrapper {
+    position: relative;
+}
+
+.otp-scope .otp-currency-symbol {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #411bbf;
+    font-weight: 800;
+    font-size: 1.05rem;
+    z-index: 1;
+}
+
+.otp-scope .otp-amount-input {
+    width: 100%;
+    padding: 14px 16px 14px 38px;
+    border-radius: 14px;
+    border: 2px solid #e2e8f0;
+    font-size: 1rem;
+    background: #f8fafc;
+    font-weight: 700;
+    color: #111827;
+    appearance: textfield;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.otp-scope .otp-amount-input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+    outline: none;
+}
+
+.otp-scope .otp-amount-input::-webkit-outer-spin-button,
+.otp-scope .otp-amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* --- Bill Summary Box --- */
@@ -149,7 +228,7 @@
 .otp-scope .verify-btn  {
     width: 100%;
     padding: 15px;
-    background: linear-gradient(135deg, #411bbf, #2d128a); /* मगाच्या सारखा प्रीमियम ग्रेडियंट */
+    background: linear-gradient(135deg, #411bbf, #2d128a);
     color: white;
     border: none;
     border-radius: 14px;
@@ -229,7 +308,7 @@
     background: #22c55e;
     color: white;
     border-radius: 20px;
-    padding: 30px;
+    padding: 18px 24px;
     text-align: center;
 }
 
@@ -244,20 +323,32 @@
     margin: 0 auto 15px;
 }
 
-.otp-scope .saved-amount  { font-size: 2rem; font-weight: 900; margin: 5px 0; }
-.otp-scope .final-total  { font-size: 0.9rem; opacity: 0.9; }
+.otp-scope .saved-amount  { font-size: 1.6rem; font-weight: 900; margin: 2px 0; }
+.otp-scope .final-total  { font-size: 0.85rem; opacity: 0.9; }
 
 /* --- Mobile Responsive --- */
 @media (max-width: 500px) {
     .otp-scope.otp-page-container  {
         padding: 15px;
         justify-content: flex-start;
-        padding-top: 30px;
+        padding-top: 0;
     }
     
     .otp-scope .otp-top-nav  {
-        margin-bottom: 15px;
+        margin-bottom: 6px;
         padding: 0 5px;
+    }
+
+    .otp-scope .otp-back-btn {
+        display: none;
+    }
+
+    .otp-scope .otp-brand-inside {
+        display: none;
+    }
+
+    .otp-scope .otp-brand-top {
+        display: none;
     }
 
     .otp-scope .otp-card  { 

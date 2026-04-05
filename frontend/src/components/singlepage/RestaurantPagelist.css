@@ -7,6 +7,19 @@
   overflow-x: hidden;
 }
 
+.rl-mobile-navbar {
+  display: none;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.rl-mobile-navbar .nav-container {
+  width: 100%;
+  max-width: none;
+  padding: 0 12px;
+}
+
 .rl-top-nav {
   display: flex;
   align-items: center;
@@ -310,6 +323,19 @@
   .zomato-container {
     max-width: none;
     padding: 12px;
+  }
+  .zomato-container {
+    padding-top: 0;
+  }
+  .rl-mobile-navbar {
+    margin-top: 0;
+  }
+  .rl-mobile-navbar {
+    display: block;
+    margin-bottom: 6px;
+  }
+  .rl-top-nav {
+    display: none;
   }
   .rl-top-nav {
     justify-content: center;

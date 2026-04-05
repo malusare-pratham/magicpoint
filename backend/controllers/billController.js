@@ -61,16 +61,12 @@ exports.createBill = async (req, res) => {
         if (!Number.isFinite(numericBillAmount) || numericBillAmount <= 0) {
             return res.status(400).json({ message: 'billAmount must be greater than 0' });
         }
-        if (!req.file) {
-            return res.status(400).json({ message: 'billImage is required' });
-        }
-
         const partner = await Partner.findById(partnerId).lean();
         if (!partner) {
             return res.status(404).json({ message: 'Partner not found' });
         }
 
-        const uploadedImage = await toUploadedUrl(req, req.file);
+        const uploadedImage = req.file ? await toUploadedUrl(req, req.file) : '';
         const numericDiscount = Number(discountAmount);
         const safeDiscount = Number.isFinite(numericDiscount) && numericDiscount >= 0
             ? numericDiscount
@@ -140,16 +136,12 @@ exports.createBillApprovalRequest = async (req, res) => {
         if (!Number.isFinite(numericBillAmount) || numericBillAmount <= 0) {
             return res.status(400).json({ message: 'billAmount must be greater than 0' });
         }
-        if (!req.file) {
-            return res.status(400).json({ message: 'billImage is required' });
-        }
-
         const partner = await Partner.findById(partnerId).lean();
         if (!partner) {
             return res.status(404).json({ message: 'Partner not found' });
         }
 
-        const uploadedImage = await toUploadedUrl(req, req.file);
+        const uploadedImage = req.file ? await toUploadedUrl(req, req.file) : '';
         const numericDiscount = Number(discountAmount);
         const safeDiscount = Number.isFinite(numericDiscount) && numericDiscount >= 0
             ? numericDiscount

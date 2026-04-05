@@ -59,7 +59,6 @@
   padding-top: var(--mp-sticky-space, 0px);
 }
 
-
 .mp-gradient-title {
   font-size: clamp(28px, 7vw, 40px);
   font-weight: 900;

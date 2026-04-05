@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Confirmation.css';
+import Navbar from '../components/Navbar/Navbar';
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-IN', {
@@ -41,6 +42,9 @@ const Confirmation = () => {
 
   return (
     <div className="conf-page-container conf-scope">
+      <div className="conf-mobile-navbar">
+        <Navbar isAuthenticated={Boolean(localStorage.getItem('authToken'))} />
+      </div>
       <div className="conf-top-nav">
         <div className="brand-logo">
           <span className="logo-magic">Trip</span>
