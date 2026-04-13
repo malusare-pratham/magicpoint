@@ -320,6 +320,14 @@
     }
     .signup-scope .plans-display-container  { grid-template-columns: 1fr; }
     .signup-scope .auth-card  { padding: 30px 20px; }
+    .signup-scope .auth-header h2 {
+        font-size: 20px;
+        white-space: nowrap;
+    }
+    .signup-scope .auth-header p {
+        font-size: 13px;
+        white-space: nowrap;
+    }
     .signup-scope .final-submit-btn  {
         padding: 14px;
         font-size: 1rem;

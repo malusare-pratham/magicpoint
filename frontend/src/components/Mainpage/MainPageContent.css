@@ -575,7 +575,7 @@
   }
 
   .mp-gradient-title {
-    font-size: clamp(21px, 5.8vw, 27px);
+    font-size: clamp(24px, 6.4vw, 30px);
     white-space: nowrap;
   }
 
