@@ -259,6 +259,19 @@ const MainPageContent = () => {
   }, []);
 
   useEffect(() => {
+    if (coords || selectedCity) return;
+    const fallbackCity = CITY_OPTIONS[0];
+    if (!fallbackCity) return;
+    setSelectedCity(fallbackCity.value);
+    localStorage.setItem("tsg_selected_city", fallbackCity.value);
+    const nextCoords = { lat: fallbackCity.lat, lng: fallbackCity.lng };
+    setCoords(nextCoords);
+    localStorage.setItem("tsg_user_coords", JSON.stringify(nextCoords));
+    setUseGps(false);
+    localStorage.setItem("tsg_use_gps", "false");
+  }, [coords, selectedCity]);
+
+  useEffect(() => {
     const handleLocationChange = (event) => {
       const detail = event?.detail || {};
       const city = String(detail.city || '').trim();
@@ -288,7 +301,7 @@ const MainPageContent = () => {
 
   useEffect(() => {
     const fetchPartners = async () => {
-      if (!coords) {
+      if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) {
         setPartners([]);
         return;
       }
