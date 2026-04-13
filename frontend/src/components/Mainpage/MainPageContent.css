@@ -574,12 +574,18 @@
     padding-top: 0;
   }
 
+  .mp-gradient-title {
+    font-size: clamp(21px, 5.8vw, 27px);
+    white-space: nowrap;
+  }
+
   .mp-filter-section {
     display: block;
   }
 
   .mp-category-tabs {
     margin-top: 6px;
+    margin-bottom: 80px;
     display: flex;
     visibility: visible;
     opacity: 1;
@@ -958,4 +964,3 @@
     padding: 0;
   }
 }
-
