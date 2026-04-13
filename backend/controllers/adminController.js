@@ -337,7 +337,6 @@ exports.reviewPartnerPendingBill = async (req, res) => {
             userName: requestDoc.userName,
             billAmount: Number(requestDoc.billAmount) || 0,
             discountAmount: Number(requestDoc.discountAmount) || 0,
-            billImage: requestDoc.billImage,
             status: 'Verified'
         });
 

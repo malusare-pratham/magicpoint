@@ -454,12 +454,6 @@ const MainPageContent = () => {
           const businessStatus = String(p.businessStatus || "OPEN").trim().toUpperCase();
           return approvalStatus === "Active" && businessStatus === "OPEN";
         })
-        .filter((partner) => {
-          if (!coords) return true;
-          const partnerCoords = normalizePartnerCoords(partner);
-          if (!partnerCoords) return false;
-          return haversineKm(coords, partnerCoords) <= 80;
-        })
         .map((partner, index) => {
           const partnerId = String(partner?._id || "").trim();
           const info = partnerInfoById[partnerId];
@@ -495,6 +489,7 @@ const MainPageContent = () => {
               "Great food and service",
             location: partner.area || "Panchgani",
             distance: distanceLabel,
+            distanceKm: Number.isFinite(computedDistance) ? computedDistance : null,
             image: normalizeImageUrl(partner.imageUrl || partner.resImage),
             businessCategory: canonicalCategory || "Food & Dining",
             categoryKey: normalizeCategory(canonicalCategory || categoryFromPartner),
@@ -504,10 +499,20 @@ const MainPageContent = () => {
     [partners, partnerInfoById, reviewStatsById, coords]
   );
 
+  const sortedItems = useMemo(() => {
+    if (!coords) return mappedItems;
+    return [...mappedItems].sort((a, b) => {
+      if (a.distanceKm === null && b.distanceKm === null) return 0;
+      if (a.distanceKm === null) return 1;
+      if (b.distanceKm === null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
+  }, [mappedItems, coords]);
+
   const filteredItems = useMemo(() => {
     const activeKey = normalizeCategory(activeCategory);
-    return mappedItems.filter((item) => item.categoryKey === activeKey);
-  }, [mappedItems, activeCategory]);
+    return sortedItems.filter((item) => item.categoryKey === activeKey);
+  }, [sortedItems, activeCategory]);
 
   const displayItems = filteredItems;
 

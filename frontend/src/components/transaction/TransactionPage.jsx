@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, TrendingUp, Wallet, Zap,
-  Download, CheckCircle, Utensils, Hotel, Store, Bike, Filter, IndianRupee
+  CheckCircle, Utensils, Hotel, Store, Bike, Filter, IndianRupee
 } from 'lucide-react';
 import './TransactionPage.css';
 
@@ -166,13 +166,7 @@ const TransactionPage = () => {
                     <label>Final Pay</label>
                     <Money value={item.finalAmount} className="c-navy" />
                   </div>
-                  <button
-                    className="btn-icon-dl"
-                    type="button"
-                    onClick={() => item.billImage && window.open(item.billImage, '_blank', 'noopener,noreferrer')}
-                  >
-                    <Download size={16} />
-                  </button>
+                  
                 </div>
               </div>
             ))

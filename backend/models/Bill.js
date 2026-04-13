@@ -18,7 +18,6 @@ const billSchema = new mongoose.Schema({
     userName: { type: String }, // डॅशबोर्डवर नाव दाखवण्यासाठी
     billAmount: { type: Number, required: true },
     discountAmount: { type: Number, default: 0 },
-    billImage: { type: String, default: "" }, // बिलच्या फोटोचा पाथ
     
     status: { 
         type: String, 

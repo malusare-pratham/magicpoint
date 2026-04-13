@@ -1,36 +1,6 @@
-const fs = require('fs/promises');
 const Bill = require('../models/Bill');
 const BillApprovalRequest = require('../models/BillApprovalRequest');
 const Partner = require('../models/Partner');
-const { cloudinary, isCloudinaryConfigured } = require('../config/cloudinary');
-
-const removeLocalFile = async (filePath) => {
-    if (!filePath) return;
-    try {
-        await fs.unlink(filePath);
-    } catch (_error) {
-        // Best effort cleanup.
-    }
-};
-
-const toUploadedUrl = async (req, file) => {
-    if (!file) return null;
-    const filePath = file.path;
-
-    if (isCloudinaryConfigured && filePath) {
-        try {
-            const uploaded = await cloudinary.uploader.upload(filePath, {
-                folder: 'magicpoint',
-                resource_type: 'auto'
-            });
-            return uploaded?.secure_url || uploaded?.url || null;
-        } finally {
-            await removeLocalFile(filePath);
-        }
-    }
-
-    return `${req.protocol}://${req.get('host')}/${String(filePath || '').replace(/\\/g, '/')}`;
-};
 
 const toTransactionId = (billId) => `TXN${String(billId || '').slice(-8).toUpperCase()}`;
 const toTransactionPayload = (bill, partner) => ({
@@ -45,7 +15,6 @@ const toTransactionPayload = (bill, partner) => ({
         ? Math.round((Number(bill.discountAmount) / Number(bill.billAmount)) * 10000) / 100
         : 0,
     finalAmount: (Number(bill.billAmount) || 0) - (Number(bill.discountAmount) || 0),
-    billImage: bill.billImage || '',
     status: bill.status || 'Pending',
     dateTime: bill.createdAt
 });
@@ -66,7 +35,6 @@ exports.createBill = async (req, res) => {
             return res.status(404).json({ message: 'Partner not found' });
         }
 
-        const uploadedImage = req.file ? await toUploadedUrl(req, req.file) : '';
         const numericDiscount = Number(discountAmount);
         const safeDiscount = Number.isFinite(numericDiscount) && numericDiscount >= 0
             ? numericDiscount
@@ -81,7 +49,6 @@ exports.createBill = async (req, res) => {
                 userName: req.user.name,
                 billAmount: numericBillAmount,
                 discountAmount: safeDiscount,
-                billImage: uploadedImage,
                 status: 'Pending'
             });
 
@@ -99,7 +66,6 @@ exports.createBill = async (req, res) => {
                         ? Math.round((approvalRequest.discountAmount / approvalRequest.billAmount) * 10000) / 100
                         : 0,
                     finalAmount: approvalRequest.billAmount - approvalRequest.discountAmount,
-                    billImage: approvalRequest.billImage,
                     status: approvalRequest.status,
                     dateTime: approvalRequest.createdAt
                 }
@@ -112,7 +78,6 @@ exports.createBill = async (req, res) => {
             userName: req.user.name,
             billAmount: numericBillAmount,
             discountAmount: safeDiscount,
-            billImage: uploadedImage,
             status: 'Verified'
         });
 
@@ -141,7 +106,6 @@ exports.createBillApprovalRequest = async (req, res) => {
             return res.status(404).json({ message: 'Partner not found' });
         }
 
-        const uploadedImage = req.file ? await toUploadedUrl(req, req.file) : '';
         const numericDiscount = Number(discountAmount);
         const safeDiscount = Number.isFinite(numericDiscount) && numericDiscount >= 0
             ? numericDiscount
@@ -153,7 +117,6 @@ exports.createBillApprovalRequest = async (req, res) => {
             userName: req.user.name,
             billAmount: numericBillAmount,
             discountAmount: safeDiscount,
-            billImage: uploadedImage,
             status: 'Pending'
         });
 
@@ -171,7 +134,6 @@ exports.createBillApprovalRequest = async (req, res) => {
                     ? Math.round((approvalRequest.discountAmount / approvalRequest.billAmount) * 10000) / 100
                     : 0,
                 finalAmount: approvalRequest.billAmount - approvalRequest.discountAmount,
-                billImage: approvalRequest.billImage,
                 status: approvalRequest.status,
                 dateTime: approvalRequest.createdAt
             }
@@ -210,7 +172,6 @@ exports.getBillStatus = async (req, res) => {
                     ? Math.round((Number(approvalRequest.discountAmount) / Number(approvalRequest.billAmount)) * 10000) / 100
                     : 0,
                 finalAmount: (Number(approvalRequest.billAmount) || 0) - (Number(approvalRequest.discountAmount) || 0),
-                billImage: approvalRequest.billImage || '',
                 status: approvalRequest.status || 'Pending',
                 dateTime: approvalRequest.createdAt
             };
@@ -239,7 +200,6 @@ exports.getMyTransactions = async (req, res) => {
             originalAmount: Number(bill.billAmount) || 0,
             discount: Number(bill.discountAmount) || 0,
             finalAmount: (Number(bill.billAmount) || 0) - (Number(bill.discountAmount) || 0),
-            billImage: bill.billImage || '',
             status: bill.status || 'Pending',
             dateTime: bill.createdAt
         }));

@@ -807,14 +807,7 @@ const PartnerDashboard = () => {
                                         <span>Transaction</span>
                                         <strong>{String(t._id || '').slice(-10)}</strong>
                                     </div>
-                                    <button
-                                        type="button"
-                                        className="recent-bill-btn"
-                                        onClick={() => t.billImage && window.open(t.billImage, '_blank', 'noopener,noreferrer')}
-                                        disabled={!t.billImage}
-                                    >
-                                        Bill
-                                    </button>
+                                    
                                 </div>
                             </div>
                         ))

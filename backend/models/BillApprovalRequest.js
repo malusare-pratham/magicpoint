@@ -14,7 +14,6 @@ const billApprovalRequestSchema = new mongoose.Schema({
     userName: { type: String, default: '' },
     billAmount: { type: Number, required: true },
     discountAmount: { type: Number, default: 0 },
-    billImage: { type: String, default: "" },
     status: {
         type: String,
         enum: ['Pending', 'Verified', 'Rejected'],

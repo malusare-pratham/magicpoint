@@ -10,7 +10,6 @@ const {
 } = require('../controllers/authController');
 const { createBill, createBillApprovalRequest, getBillStatus, getMyTransactions } = require('../controllers/billController');
 const protect = require('../middleware/auth');
-const upload = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -23,8 +22,8 @@ router.post('/login', loginUser);
 router.get('/me', protect, getProfile);
 router.post('/heartbeat', protect, heartbeatUser);
 router.post('/logout', protect, logoutUser);
-router.post('/bills', protect, upload.single('billImage'), createBill);
-router.post('/bills/request', protect, upload.single('billImage'), createBillApprovalRequest);
+router.post('/bills', protect, createBill);
+router.post('/bills/request', protect, createBillApprovalRequest);
 router.get('/bills/:billId/status', protect, getBillStatus);
 router.get('/transactions', protect, getMyTransactions);
 

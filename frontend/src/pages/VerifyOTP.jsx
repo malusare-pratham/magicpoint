@@ -85,25 +85,25 @@ const VerifyOTP = () => {
       message: 'Approval request is being sent to partner...'
     });
 
-    const formData = new FormData();
-    formData.append('partnerId', String(partnerId));
-    formData.append('billAmount', String(billAmount));
-    formData.append('discountAmount', String(discountAmount));
-    formData.append('approvalMode', 'partnerApproval');
+    const payload = {
+      partnerId: String(partnerId),
+      billAmount: String(billAmount),
+      discountAmount: String(discountAmount),
+      approvalMode: 'partnerApproval'
+    };
 
     const authHeaders = {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'multipart/form-data'
+      Authorization: `Bearer ${token}`
     };
 
     const submitApprovalRequest = async () => {
       try {
-        return await axios.post(`${API_BASE_URL}/api/auth/bills/request`, formData, {
+        return await axios.post(`${API_BASE_URL}/api/auth/bills/request`, payload, {
           headers: authHeaders
         });
       } catch (error) {
         if (error?.response?.status === 404) {
-          return axios.post(`${API_BASE_URL}/api/auth/bills`, formData, {
+          return axios.post(`${API_BASE_URL}/api/auth/bills`, payload, {
             headers: authHeaders
           });
         }
