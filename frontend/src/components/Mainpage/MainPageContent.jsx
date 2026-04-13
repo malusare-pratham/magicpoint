@@ -301,21 +301,25 @@ const MainPageContent = () => {
 
   useEffect(() => {
     const fetchPartners = async () => {
-      if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) {
-        setPartners([]);
-        return;
-      }
       try {
-        const response = await axios.get(`${API_BASE_URL}/api/partners/nearby`, {
-          headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
-          params: {
-            lat: coords.lat,
-            lng: coords.lng,
-            radius: 80000,
-            _ts: Date.now()
-          }
-        });
-        setPartners(Array.isArray(response.data) ? response.data : []);
+        if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
+          const response = await axios.get(`${API_BASE_URL}/api/partners/nearby`, {
+            headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+            params: {
+              lat: coords.lat,
+              lng: coords.lng,
+              radius: 80000,
+              _ts: Date.now()
+            }
+          });
+          setPartners(Array.isArray(response.data) ? response.data : []);
+        } else {
+          const response = await axios.get(`${API_BASE_URL}/api/admin/partners`, {
+            headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
+            params: { _ts: Date.now() }
+          });
+          setPartners(Array.isArray(response.data) ? response.data : []);
+        }
       } catch (_error) {
         setPartners([]);
       }
