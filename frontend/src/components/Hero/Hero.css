@@ -2,7 +2,7 @@
   /* १. बॅकग्राउंडला आता तुमचा सॉलिड #411bbf कलर दिला आहे */
   background: #411bbf; 
   position: relative;
-  min-height: 550px; 
+  min-height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -48,13 +48,13 @@
     padding: 10px;
     border-radius: 20px;
     display: inline-block;
-    margin: 4px 0;
+    margin: 4px 0 16px;
     animation: pulse 2s infinite;
 }
 
-.discount-main { font-size: 28px; font-weight: 900; }
+.discount-main { font-size: 28px; font-weight: 900; line-height: 1.05; margin-bottom: 6px; }
 .big-percent { color: #ffc107; font-size: 45px; text-shadow: 0 0 15px rgba(255, 193, 7, 0.5); }
-.offer-sub { font-size: 14px; font-weight: 700; letter-spacing: 2px; margin-top: 5px; color: #eef2ff; }
+.offer-sub { font-size: 14px; font-weight: 700; letter-spacing: 2px; margin-top: 6px; line-height: 1.1; color: #eef2ff; }
 .hero-membership-footer {
     margin-top: 6px;
     border-top: none;
@@ -98,8 +98,9 @@
 
 /* --- Search & Other Styles --- */
 .limited-offer-tag { display: inline-flex; align-items: center; gap: 8px; background: #ffc107; color: #000; padding: 5px 15px; border-radius: 20px; font-weight: 800; font-size: 12px; margin-bottom: 10px; }
-.hero-title { font-size: clamp(32px, 6vw, 55px); font-weight: 900; }
+.hero-title { font-size: clamp(32px, 6vw, 55px); font-weight: 900; margin-bottom: 10px; }
 .city-name { color: #fff; text-decoration: underline; text-decoration-color: #ff3f6c; }
+
 
 .search-wrapper { display: flex; justify-content: center; margin-top: 14px; margin-bottom: 25px; }
 
@@ -119,7 +120,7 @@
 .single-search-bar input { flex: 1; border: none; outline: none; padding: 12px; font-size: 16px; color: #6b7280; background: transparent; }
 .single-search-bar input::placeholder { color: #9ca3af; font-weight: 500; font-size: 16px; }
 .get-deals-btn { background: #411bbf; color: #fff; border: none; padding: 12px 35px; border-radius: 8px; font-weight: 700; cursor: pointer; position: relative; z-index: 20; }
-.hero-stats { display: flex; justify-content: center; gap: 30px; margin-bottom: 60px; font-size: 14px; opacity: 0.9; }
+.hero-stats { display: flex; justify-content: center; gap: 50px; margin: 10px 0 60px; font-size: 14px; opacity: 0.9; }
 
 @media (min-width: 1024px) {
   .single-search-bar { 
@@ -336,8 +337,8 @@
 /* --- मोबाईलसाठी विशेष अपडेट्स --- */
 @media (max-width: 600px) {
   .magic-hero { 
-    min-height: 450px;
-    padding-top: 12px;
+    min-height: auto;
+    padding-top: 6px;
     overflow: hidden;
     border-bottom-left-radius: 50% 20px;
     border-bottom-right-radius: 50% 20px;
@@ -369,12 +370,12 @@
     border-radius: 50px; 
   }
 
-  .hero-title { margin-bottom: 20px; line-height: 1.16; }
+  .hero-title { margin-bottom: 12px; line-height: 1.16; }
   .offer-highlight-box { width: 92%; padding: 6px; }
   .discount-main { font-size: 20px; }
   .big-percent { font-size: 31px; }
   .offer-sub { font-size: 12.75px; letter-spacing: 0.7px; white-space: nowrap; }
-  .offer-highlight-box { margin: 10px 0; }
+  .offer-highlight-box { margin: 6px 0; }
   .hero-membership-footer { margin-top: 6px; padding-top: 6px; }
   .hero-membership-footer {
     flex-direction: column;
@@ -397,13 +398,13 @@
     width: fit-content;
     margin: 0 auto 10px 0;
     align-self: flex-start;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
   }
 
-  .limited-offer-tag { margin-top: 10px; margin-bottom: 6px; }
+  .limited-offer-tag { margin-top: 6px; margin-bottom: 4px; }
   
   .hero-curve-bottom { height: 100px; width: 220%; bottom: -1px; }
-  .hero-stats { gap: 10px; font-size: 13px; margin-bottom: 20px; }
+  .hero-stats { gap: 16px; font-size: 13px; margin-bottom: 10px; }
 
   /* Lift the skyline so it doesn't overlap bottom corners */
   .hero-svg-bg {
@@ -420,6 +421,12 @@
 
 @media (min-width: 601px) {
   .hero-mobile-location {
-    display: none;
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: auto;
+    margin: 0;
+    align-self: flex-end;
   }
 }

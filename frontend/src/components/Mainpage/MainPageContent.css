@@ -26,13 +26,13 @@
 
 @media (max-width: 768px) {
   .mp-main-container {
-    padding: 10px 12px;
+    padding: 0 10px 6px;
   }
 }
 
 .mp-page-header {
-  text-align: center;
-  margin: 16px 0 12px;
+  text-align: left;
+  margin: 6px 0 4px;
   padding: 0 15px;
 }
 
@@ -518,11 +518,11 @@
   }
 
   .mp-mobile-sticky .mp-page-header {
-    margin: 6px 0 4px;
+    margin: 4px 0 2px;
   }
 
   .mp-mobile-sticky .mp-filter-section {
-    margin: 3px 0 6px;
+    margin: 2px 0 4px;
     padding: 0 12px;
   }
 
@@ -557,8 +557,21 @@
     padding-top: 0;
   }
 
+  .mp-scope {
+    padding-top: 0;
+  }
+
+  .mp-main-container {
+    margin-top: -40px;
+  }
+
+  .mp-mobile-sticky .mp-page-header {
+    margin: 0;
+  }
+
   .mp-page-header {
-    margin: 0 0 2px;
+    margin: 0;
+    padding-top: 0;
   }
 
   .mp-filter-section {
@@ -566,7 +579,7 @@
   }
 
   .mp-category-tabs {
-    margin-top: 10px;
+    margin-top: 6px;
     display: flex;
     visibility: visible;
     opacity: 1;
@@ -584,22 +597,22 @@
   }
 
   .mp-filter-section {
-    margin-bottom: 124px;
+    margin-bottom: 70px;
   }
 
   .mp-section {
-    margin-top: 80px;
+    margin-top: 40px;
   }
 
   .mp-section-header {
-    margin-top: 46px;
+    margin-top: 24px;
     display: flex;
     visibility: visible;
     opacity: 1;
     position: relative;
     z-index: 1;
     padding: 4px 12px;
-    margin-bottom: 32px;
+    margin-bottom: 18px;
     background: #fcfcfc;
   }
 
@@ -654,11 +667,11 @@
 }
 
 /* Filter Bar Styling */
-.mp-filter-section { margin: 20px 0; padding: 0 20px; }
+.mp-filter-section { margin: 8px 0; padding: 0 20px; }
 .mp-main-filters { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 15px; scrollbar-width: none; }
 .mp-filter-pill { border: 1px solid #e0e0e0; padding: 10px 18px; border-radius: 10px; font-size: 14px; color: #444; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; }
 .active-purple { background: var(--primary-purple); color: white !important; border-color: var(--primary-purple); }
-.mp-category-tabs { display: flex; gap: 15px; border-bottom: none; margin-top: 10px; overflow-x: auto; scrollbar-width: none; background: transparent; }
+.mp-category-tabs { display: flex; gap: 15px; border-bottom: none; margin-top: 4px; overflow-x: auto; scrollbar-width: none; background: transparent; }
 .mp-tab { background: transparent; border: none; padding: 12px 20px; font-size: 15px; font-weight: 800; color: #666; cursor: pointer; position: relative; white-space: nowrap; }
 .mp-tab.active { color: var(--primary-purple); background: transparent; }
 .mp-tab.active::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; background: var(--primary-purple); }

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import MenuSlider from "../menuslider/MenuSlider";
 import "./MainPageContent.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -554,12 +553,9 @@ const MainPageContent = () => {
   return (
     <div className="mp-scope">
       <div className="mp-main-container">
-        <MenuSlider />
-
         <div className="mp-mobile-sticky">
           <header className="mp-page-header">
-            <h1 className="mp-gradient-title">Explore nearby offers</h1>
-            <p className="mp-sub-title">Lowest prices for all your favourite Tripspotgos</p>
+            <h1 className="mp-gradient-title">Trending Offers Near You</h1>
           </header>
 
           <FilterBar

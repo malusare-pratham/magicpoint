@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import "./Hero.css";
 
 const CITY_OPTIONS = [
@@ -37,15 +36,12 @@ const pickLocationLabel = (entry) => {
 };
 
 function Hero() {
-  const navigate = useNavigate();
   const [selectedCity, setSelectedCity] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [locationOpen, setLocationOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
-  const dropdownRef = useRef(null);
   const mobileDropdownRef = useRef(null);
 
   useEffect(() => {
@@ -96,7 +92,6 @@ function Hero() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && dropdownRef.current.contains(event.target)) return;
       if (mobileDropdownRef.current && mobileDropdownRef.current.contains(event.target)) return;
       setLocationOpen(false);
     };
@@ -192,11 +187,6 @@ function Hero() {
     );
   };
 
-  const handleSearch = () => {
-    const query = String(searchQuery || '').trim();
-    navigate(`/restaurant-list${query ? `?q=${encodeURIComponent(query)}` : ''}`);
-  };
-
   const locationPanel = (
     <div className={`hero-location-panel ${isMobile ? "hero-location-panel--mobile" : ""}`}>
       <button
@@ -249,65 +239,22 @@ function Hero() {
           >
             {locationQuery || selectedCity || "Select Location"}
           </button>
-          {isMobile && locationOpen && locationPanel}
+          {locationOpen && locationPanel}
         </div>
         <div className="text-content">
           <div className="limited-offer-tag">
              <i className="fa-solid fa-fire"></i> LIMITED TIME OFFER
           </div>
           <h1 className="hero-title">
-            Explore <span className="city-name">Panchgani & Mahabaleshwar</span>
+            Deals in <span className="city-name">Panchgani & Mahabaleshwar</span>
           </h1>
-          
+
           <div className="offer-highlight-box">
             <div className="discount-main">
               GET FLAT <span className="big-percent">10%</span> OFF
             </div>
             <p className="offer-sub">ON HOTELS • FOOD • ACTIVITIES • SHOPS</p>
-            
           </div>
-          
-        </div>
-
-        <div className="search-wrapper">
-          <form
-            className="single-search-bar hero-search-bar"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSearch();
-            }}
-          >
-            <div className="hero-location-select" ref={dropdownRef}>
-              <i className="fa-solid fa-location-dot hero-location-icon" aria-hidden="true"></i>
-              <input
-                type="text"
-                className="hero-location-input"
-                placeholder="Search Location"
-                value={locationQuery}
-                onFocus={() => setLocationOpen(true)}
-                onChange={(e) => {
-                  setLocationQuery(e.target.value);
-                  setLocationOpen(true);
-                }}
-              />
-              <span className={`hero-location-caret ${locationOpen ? "open" : ""}`} aria-hidden="true"></span>
-              {!isMobile && locationOpen && locationPanel}
-            </div>
-            <span className="hero-search-divider"></span>
-            <i className="fa-solid fa-magnifying-glass search-icon-fa"></i>
-            <input
-              type="text"
-              placeholder="Search for places, cuisines, and more..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSearch();
-              }}
-            />
-            <button className="get-deals-btn" type="submit">
-              Get Deals
-            </button>
-          </form>
         </div>
 
         <div className="hero-stats">
@@ -320,6 +267,8 @@ function Hero() {
 }
 
 export default Hero;
+
+
 
 
 
