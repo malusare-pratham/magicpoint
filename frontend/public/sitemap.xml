@@ -5,15 +5,8 @@
   <url><loc>https://tripspotgo.com/</loc></url>
   <url><loc>https://tripspotgo.com/signup</loc></url>
   <url><loc>https://tripspotgo.com/login</loc></url>
-  
-
-  <!-- SEO Pages -->
-  <url><loc>https://tripspotgo.com/restaurants</loc></url>
-  <url><loc>https://tripspotgo.com/activity</loc></url>
-  <url><loc>https://tripspotgo.com/hotel</loc></url>
-  <url><loc>https://tripspotgo.com/shops</loc></url>
-  <url><loc>https://tripspotgo.com/villas</loc></url>
   <url><loc>https://tripspotgo.com/blog</loc></url>
+  
 
   <!-- Static Pages -->
   <url><loc>https://tripspotgo.com/about-us</loc></url>

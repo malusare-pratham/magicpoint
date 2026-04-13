@@ -38,15 +38,6 @@ import PartnerDashboard from './PartnerPortal/PartnerDashboard';
 import Info from './AdminPortal/info';
 
 
-// SEO Routing Imports
-import CitySeoPage from './pages/seo/city/CitySeoPage';
-import RestaurantSeoPage from './pages/seo/restaurant/RestaurantSeoPage';
-import ActivitySeoPage from './pages/seo/activity/ActivitySeoPage';
-import HotelSeoPage from './pages/seo/hotel/HotelSeoPage';
-import ShopsSeoPage from './pages/seo/shops/ShopsSeoPage';
-import VillasSeoPage from './pages/seo/villas/VillasSeoPage';
-import BlogSeoPage from './pages/seo/blog/BlogSeoPage';
-
 import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
 import Blog from './pages/Blog';
@@ -132,20 +123,6 @@ const AppLayout = () => {
           <Route path="/DashboardPage" element={<Dashboard />} />
           <Route path="/restaurant" element={<Restaurant />} />
           
-          {/* SEO Routes */}
-          <Route path="/restaurant/:slug" element={<RestaurantSeoPage />} />
-          <Route path="/restaurants" element={<RestaurantSeoPage />} />
-          <Route path="/activity/:slug" element={<ActivitySeoPage />} />
-          <Route path="/activity" element={<ActivitySeoPage />} />
-          <Route path="/hotel/:slug" element={<HotelSeoPage />} />
-          <Route path="/hotel" element={<HotelSeoPage />} />
-          <Route path="/shops/:slug" element={<ShopsSeoPage />} />
-          <Route path="/shops" element={<ShopsSeoPage />} />
-          <Route path="/villas/:slug" element={<VillasSeoPage />} />
-          <Route path="/villas" element={<VillasSeoPage />} />
-          <Route path="/:citySlug" element={<CitySeoPage />} />
-          <Route path="/blog/:slug" element={<BlogSeoPage />} />
-
           <Route path="/about-us" element={<AboutUs />} />
           <Route path="/contact-us" element={<ContactUs />} />
           <Route path="/blog" element={<Blog />} />

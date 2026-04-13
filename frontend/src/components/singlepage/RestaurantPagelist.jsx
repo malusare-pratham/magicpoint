@@ -184,6 +184,18 @@ const RestaurantPagelist = () => {
     return raw ? decodeURIComponent(raw) : '';
   }, [location.search]);
 
+  const queryParam = useMemo(() => {
+    const params = new URLSearchParams(location.search || '');
+    const raw = params.get('q');
+    return raw ? decodeURIComponent(raw) : '';
+  }, [location.search]);
+
+  useEffect(() => {
+    if (queryParam) {
+      setSearchTerm(queryParam);
+    }
+  }, [queryParam]);
+
   const normalizeCategory = (value) => String(value || '').trim().toLowerCase();
 
   const effectiveCategory = useMemo(() => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Hero.css";
 
 const CITY_OPTIONS = [
@@ -36,8 +37,10 @@ const pickLocationLabel = (entry) => {
 };
 
 function Hero() {
+  const navigate = useNavigate();
   const [selectedCity, setSelectedCity] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [locationOpen, setLocationOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -189,6 +192,11 @@ function Hero() {
     );
   };
 
+  const handleSearch = () => {
+    const query = String(searchQuery || '').trim();
+    navigate(`/restaurant-list${query ? `?q=${encodeURIComponent(query)}` : ''}`);
+  };
+
   const locationPanel = (
     <div className={`hero-location-panel ${isMobile ? "hero-location-panel--mobile" : ""}`}>
       <button
@@ -262,7 +270,13 @@ function Hero() {
         </div>
 
         <div className="search-wrapper">
-          <div className="single-search-bar hero-search-bar">
+          <form
+            className="single-search-bar hero-search-bar"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSearch();
+            }}
+          >
             <div className="hero-location-select" ref={dropdownRef}>
               <i className="fa-solid fa-location-dot hero-location-icon" aria-hidden="true"></i>
               <input
@@ -281,9 +295,19 @@ function Hero() {
             </div>
             <span className="hero-search-divider"></span>
             <i className="fa-solid fa-magnifying-glass search-icon-fa"></i>
-            <input type="text" placeholder="Search for places, cuisines, and more..." />
-            <button className="get-deals-btn">Get Deals</button>
-          </div>
+            <input
+              type="text"
+              placeholder="Search for places, cuisines, and more..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSearch();
+              }}
+            />
+            <button className="get-deals-btn" type="submit">
+              Get Deals
+            </button>
+          </form>
         </div>
 
         <div className="hero-stats">

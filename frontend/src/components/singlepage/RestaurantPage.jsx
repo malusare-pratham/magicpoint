@@ -256,6 +256,7 @@ const RestaurantPage = () => {
   const [reviewAgree, setReviewAgree] = useState(false);
   const [reviewPhotos, setReviewPhotos] = useState([]);
   const [reviewPhotoPreviews, setReviewPhotoPreviews] = useState([]);
+  const [menuSearch, setMenuSearch] = useState('');
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
   const [foodFilter, setFoodFilter] = useState('all');
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -684,6 +685,21 @@ const RestaurantPage = () => {
     return fallbackMenu;
   }, [restaurantInfo.menuSections]);
 
+  const normalizedMenuQuery = String(menuSearch || '').trim().toLowerCase();
+  const filteredMenuData = useMemo(() => {
+    if (!normalizedMenuQuery) return menuData;
+    return menuData
+      .map((section) => {
+        const items = section.items.filter((item) => {
+          const name = String(item?.name || '').toLowerCase();
+          const desc = String(item?.desc || '').toLowerCase();
+          return name.includes(normalizedMenuQuery) || desc.includes(normalizedMenuQuery);
+        });
+        return { ...section, items };
+      })
+      .filter((section) => section.items.length > 0);
+  }, [menuData, normalizedMenuQuery]);
+
   const overviewReviews = useMemo(() => reviews.slice(0, 3).map(mapReviewToCard), [reviews]);
   const reviewCards = useMemo(() => (reviews.length ? reviews.map(mapReviewToCard) : []), [reviews]);
   const reviewGalleryPhotos = useMemo(
@@ -976,7 +992,12 @@ const RestaurantPage = () => {
           </div>
           <div className="rp-search-bar">
             <Search className="rp-s-icon" size={16} />
-            <input type="text" placeholder="Search menu..." />
+            <input
+              type="text"
+              placeholder="Search menu..."
+              value={menuSearch}
+              onChange={(e) => setMenuSearch(e.target.value)}
+            />
           </div>
           <div className="rp-nav-right">
             <button
@@ -1258,7 +1279,7 @@ const RestaurantPage = () => {
 
           {activeTab === 'MENU' && (
             <div className="rp-menu-wrap">
-              {menuData.length > 0 && (
+              {filteredMenuData.length > 0 && (
                 <>
                   <div className="rp-food-filter-row">
                     {foodFilters.map((filter) => (
@@ -1272,7 +1293,7 @@ const RestaurantPage = () => {
                       </button>
                     ))}
                   </div>
-                  {(hasMenuSections && foodFilter ? menuData.filter((section) => section.category === foodFilter) : menuData).map((section, idx) => (
+                  {(hasMenuSections && foodFilter ? filteredMenuData.filter((section) => section.category === foodFilter) : filteredMenuData).map((section, idx) => (
                     <div key={idx} className="rp-menu-section">
                       <h2 className="rp-cat-header">{section.category}</h2>
                       <div className="rp-menu-grid">

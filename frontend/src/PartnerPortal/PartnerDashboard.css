@@ -472,6 +472,34 @@
     margin-bottom: 20px;
 }
 
+@media (min-width: 900px) {
+    .stats-grid {
+        display: flex !important;
+        flex-wrap: nowrap;
+        gap: 16px;
+        overflow-x: auto;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stats-grid::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .stats-grid::-webkit-scrollbar-thumb {
+        background: rgba(15, 23, 42, 0.2);
+        border-radius: 999px;
+    }
+
+    .stats-grid::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .stat-card {
+        flex: 0 0 220px;
+    }
+}
+
 .stat-card {
     background: white;
     padding: 20px;

@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
-import AdminSeoEditor from './AdminSeoEditor';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -741,19 +740,9 @@ const AdminDashboard = () => {
                                 <i className="fa-regular fa-user"></i>
                                 Members
                             </button>
-                            <button
-                                type="button"
-                                className={`admin-quick-pill ${quickTab === 'seo' ? 'active' : ''}`}
-                                onClick={() => setQuickTab('seo')}
-                            >
-                                <i className="fa-solid fa-globe"></i>
-                                Manage SEO
-                            </button>
                         </div>
 
-                        {quickTab === 'seo' ? (
-                            <AdminSeoEditor />
-                        ) : quickTab === 'memberships' ? (
+                        {quickTab === 'memberships' ? (
                             <div className="members-card">
                                 <div className="members-card-header">
                                     <div>
