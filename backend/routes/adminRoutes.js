@@ -9,6 +9,7 @@ router.post('/partner-login', adminController.partnerLogin);
 router.get('/dashboard-stats', adminController.getAdminDashboardStats);
 
 router.get('/partner-transactions/:partnerId', adminController.getPartnerTransactions);
+router.get('/partner-dashboard-stats/:partnerId', adminController.getPartnerDashboardStats);
 router.get('/partner-pending-bills/:partnerId', adminController.getPartnerPendingBills);
 router.put('/partner-pending-bills/:partnerId/:billId', adminController.reviewPartnerPendingBill);
 router.put('/partner-business-status/:id', adminController.updatePartnerBusinessStatus);

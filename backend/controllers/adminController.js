@@ -299,6 +299,94 @@ exports.getPartnerTransactions = async (req, res) => {
     }
 };
 
+exports.getPartnerDashboardStats = async (req, res) => {
+    try {
+        const { partnerId } = req.params;
+        const fromRaw = String(req.query?.from || '').trim();
+        const toRaw = String(req.query?.to || '').trim();
+
+        const parseYyyyMmDd = (value) => {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+            const [y, m, d] = value.split('-').map((x) => Number(x));
+            if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+            const date = new Date(y, m - 1, d, 0, 0, 0, 0);
+            if (Number.isNaN(date.getTime())) return null;
+            return date;
+        };
+
+        const startDate = parseYyyyMmDd(fromRaw);
+        const endDate = parseYyyyMmDd(toRaw);
+        if (!startDate || !endDate) {
+            return res.status(400).json({ message: 'from and to are required in YYYY-MM-DD format' });
+        }
+
+        const normalizedStart = startDate <= endDate ? startDate : endDate;
+        const normalizedEnd = startDate <= endDate ? endDate : startDate;
+
+        const endExclusive = new Date(normalizedEnd);
+        endExclusive.setDate(endExclusive.getDate() + 1);
+
+        const rangeMs = endExclusive.getTime() - normalizedStart.getTime();
+        const previousEndExclusive = new Date(normalizedStart);
+        const previousStart = new Date(normalizedStart.getTime() - rangeMs);
+
+        const makeStats = async (rangeStart, rangeEndExclusive) => {
+            const bills = await Bill.find({
+                partnerId,
+                status: 'Verified',
+                createdAt: { $gte: rangeStart, $lt: rangeEndExclusive }
+            }).select('billAmount discountAmount userId');
+
+            let revenue = 0;
+            let discounts = 0;
+            const customerIds = new Set();
+
+            bills.forEach((bill) => {
+                revenue += Number(bill.billAmount) || 0;
+                discounts += Number(bill.discountAmount) || 0;
+                if (bill.userId) customerIds.add(String(bill.userId));
+            });
+
+            const totalTransactions = bills.length;
+            const customers = customerIds.size;
+            const avgBill = totalTransactions > 0 ? Math.round(revenue / totalTransactions) : 0;
+
+            return {
+                revenue,
+                discounts,
+                customers,
+                totalTransactions,
+                avgBill
+            };
+        };
+
+        const [current, previous] = await Promise.all([
+            makeStats(normalizedStart, endExclusive),
+            makeStats(previousStart, previousEndExclusive)
+        ]);
+
+        const previousRevenue = Number(previous?.revenue) || 0;
+        const currentRevenue = Number(current?.revenue) || 0;
+        const revenueChangePercent = previousRevenue === 0
+            ? (currentRevenue > 0 ? 100 : 0)
+            : ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+
+        const rangeFrom = fromRaw <= toRaw ? fromRaw : toRaw;
+        const rangeTo = fromRaw <= toRaw ? toRaw : fromRaw;
+
+        return res.status(200).json({
+            range: { from: rangeFrom, to: rangeTo },
+            current,
+            previous,
+            changes: {
+                revenuePercent: revenueChangePercent
+            }
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Error fetching partner dashboard stats', error: error.message });
+    }
+};
+
 exports.getPartnerPendingBills = async (req, res) => {
     try {
         const { partnerId } = req.params;

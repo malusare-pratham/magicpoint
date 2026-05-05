@@ -156,7 +156,7 @@ const OfferCard = ({ item, onClick, isPressed, onPressStart, onPressEnd }) => (
       <img
         src={item.image}
         alt={item.name}
-        loading="eager"
+        loading="lazy"
         decoding="async"
         onError={(e) => {
           e.currentTarget.onerror = null;
@@ -198,6 +198,7 @@ const OfferCard = ({ item, onClick, isPressed, onPressStart, onPressEnd }) => (
 const MainPageContent = () => {
   const navigate = useNavigate();
   const [partners, setPartners] = useState([]);
+  const [partnersLoaded, setPartnersLoaded] = useState(false);
   const [partnerInfoById, setPartnerInfoById] = useState({});
   const [reviewStatsById, setReviewStatsById] = useState({});
   const [activeCategory, setActiveCategory] = useState("Food & Dining");
@@ -301,33 +302,33 @@ const MainPageContent = () => {
   useEffect(() => {
     const fetchPartners = async () => {
       try {
+        // Show something quickly: load a generic partner list first, then refine by nearby results.
+        if (!partnersLoaded) {
+          const fallbackRes = await axios.get(`${API_BASE_URL}/api/admin/partners`);
+          setPartners(Array.isArray(fallbackRes.data) ? fallbackRes.data : []);
+          setPartnersLoaded(true);
+        }
+
         if (coords && Number.isFinite(coords.lat) && Number.isFinite(coords.lng)) {
           const response = await axios.get(`${API_BASE_URL}/api/partners/nearby`, {
-            headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
             params: {
               lat: coords.lat,
               lng: coords.lng,
               radius: 80000,
-              _ts: Date.now()
             }
           });
           setPartners(Array.isArray(response.data) ? response.data : []);
-        } else {
-          const response = await axios.get(`${API_BASE_URL}/api/admin/partners`, {
-            headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
-            params: { _ts: Date.now() }
-          });
-          setPartners(Array.isArray(response.data) ? response.data : []);
+          setPartnersLoaded(true);
         }
       } catch (_error) {
         setPartners([]);
+        setPartnersLoaded(true);
       }
     };
 
     fetchPartners();
-    const refreshTimer = setInterval(fetchPartners, 10000);
-    return () => clearInterval(refreshTimer);
-  }, [coords]);
+    return undefined;
+  }, [coords, partnersLoaded]);
 
   useEffect(() => {
     if (!navigator?.geolocation) {
@@ -391,76 +392,8 @@ const MainPageContent = () => {
     localStorage.setItem("tsg_user_coords", JSON.stringify(nextCoords));
   }, [coords, locationStatus, selectedCity]);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchPartnerInfo = async () => {
-      const partnerIds = partners
-        .map((partner) => String(partner?._id || "").trim())
-        .filter(Boolean);
-
-      if (!partnerIds.length) {
-        if (isMounted) setPartnerInfoById({});
-        return;
-      }
-
-      const responses = await Promise.all(
-        partnerIds.map(async (partnerId) => {
-          try {
-            const res = await axios.get(`${API_BASE_URL}/api/admin/partner-info/${partnerId}`);
-            return [partnerId, res?.data?.data || null];
-          } catch (_error) {
-            return [partnerId, null];
-          }
-        })
-      );
-
-      if (!isMounted) return;
-      setPartnerInfoById(Object.fromEntries(responses));
-    };
-
-    fetchPartnerInfo();
-    return () => {
-      isMounted = false;
-    };
-  }, [partners]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const partnerIds = partners
-      .map((partner) => String(partner?._id || "").trim())
-      .filter(Boolean);
-
-    const missingIds = partnerIds.filter((id) => !reviewStatsRef.current[id]);
-    if (!missingIds.length) return;
-
-    const fetchReviews = async () => {
-      const entries = await Promise.all(
-        missingIds.map(async (partnerId) => {
-          try {
-            const res = await axios.get(`${API_BASE_URL}/api/restaurants/${partnerId}/reviews`);
-            const list = Array.isArray(res?.data?.data) ? res.data.data : [];
-            const avg = list.length
-              ? list.reduce((sum, item) => sum + Number(item?.rating || 0), 0) / list.length
-              : null;
-            return [partnerId, { avg, count: list.length }];
-          } catch (_error) {
-            return [partnerId, { avg: null, count: 0 }];
-          }
-        })
-      );
-
-      if (!isMounted) return;
-      const next = { ...reviewStatsRef.current, ...Object.fromEntries(entries) };
-      reviewStatsRef.current = next;
-      setReviewStatsById(next);
-    };
-
-    fetchReviews();
-    return () => {
-      isMounted = false;
-    };
-  }, [partners]);
+  // Note: partner details (partner-info + reviews) are fetched lazily for visible cards
+  // further below to avoid making dozens of requests on initial load.
 
   const mappedItems = useMemo(
     () =>
@@ -533,6 +466,97 @@ const MainPageContent = () => {
   const displayItems = filteredItems;
 
   useEffect(() => {
+    if (!partnersLoaded) return undefined;
+    let isMounted = true;
+    const visibleIds = displayItems
+      .slice(0, 12)
+      .map((item) => String(item?.id || '').trim())
+      .filter(Boolean);
+
+    const missingInfoIds = visibleIds.filter((id) => partnerInfoById[id] === undefined);
+    if (!missingInfoIds.length) return undefined;
+
+    const fetchInBatches = async (ids, batchSize, worker) => {
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize);
+        // eslint-disable-next-line no-await-in-loop
+        await Promise.all(batch.map(worker));
+        if (!isMounted) return;
+      }
+    };
+
+    const run = async () => {
+      const entries = [];
+      await fetchInBatches(missingInfoIds, 4, async (partnerId) => {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/admin/partner-info/${partnerId}`);
+          entries.push([partnerId, res?.data?.data || null]);
+        } catch (_error) {
+          entries.push([partnerId, null]);
+        }
+      });
+
+      if (!isMounted) return;
+      setPartnerInfoById((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    };
+
+    // Defer until after first paint so cards show immediately.
+    const timerId = setTimeout(run, 50);
+    return () => {
+      isMounted = false;
+      clearTimeout(timerId);
+    };
+  }, [partnersLoaded, displayItems, partnerInfoById]);
+
+  useEffect(() => {
+    if (!partnersLoaded) return undefined;
+    let isMounted = true;
+    const visibleIds = displayItems
+      .slice(0, 12)
+      .map((item) => String(item?.id || '').trim())
+      .filter(Boolean);
+
+    const missingReviewIds = visibleIds.filter((id) => !reviewStatsRef.current[id]);
+    if (!missingReviewIds.length) return undefined;
+
+    const fetchInBatches = async (ids, batchSize, worker) => {
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize);
+        // eslint-disable-next-line no-await-in-loop
+        await Promise.all(batch.map(worker));
+        if (!isMounted) return;
+      }
+    };
+
+    const run = async () => {
+      const entries = [];
+      await fetchInBatches(missingReviewIds, 4, async (partnerId) => {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/restaurants/${partnerId}/reviews`);
+          const list = Array.isArray(res?.data?.data) ? res.data.data : [];
+          const avg = list.length
+            ? list.reduce((sum, item) => sum + Number(item?.rating || 0), 0) / list.length
+            : null;
+          entries.push([partnerId, { avg, count: list.length }]);
+        } catch (_error) {
+          entries.push([partnerId, { avg: null, count: 0 }]);
+        }
+      });
+
+      if (!isMounted) return;
+      const next = { ...reviewStatsRef.current, ...Object.fromEntries(entries) };
+      reviewStatsRef.current = next;
+      setReviewStatsById(next);
+    };
+
+    const timerId = setTimeout(run, 100);
+    return () => {
+      isMounted = false;
+      clearTimeout(timerId);
+    };
+  }, [partnersLoaded, displayItems]);
+
+  useEffect(() => {
     if (hasManualCategory) return;
     if (!mappedItems.length) return;
     const available = new Set(mappedItems.map((item) => item.categoryKey).filter(Boolean));
@@ -591,8 +615,12 @@ const MainPageContent = () => {
                   onClick={() => openRestaurant(item.id)}
                 />
               ))
-            ) : (
+            ) : partnersLoaded ? (
               <p className="no-data">No offers available.</p>
+            ) : (
+              Array.from({ length: 6 }).map((_, idx) => (
+                <div key={`skeleton-${idx}`} className="mpc-skeleton-card" />
+              ))
             )}
           </div>
           <button

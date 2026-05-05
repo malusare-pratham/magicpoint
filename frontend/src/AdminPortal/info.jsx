@@ -20,13 +20,21 @@ const resolvePartnerId = (payload) => {
   return String(localStorage.getItem('selectedPartnerId') || '').trim();
 };
 
-const formatCurrency = (value) => `₹${Number(value || 0).toFixed(0)}`;
-
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(Number(value || 0));
 const Info = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [partnerInfo, setPartnerInfo] = useState(null);
-  const [stats, setStats] = useState({ revenue: 0, discounts: 0, customers: 0, avgBill: 0 });
+  const [stats, setStats] = useState({ revenue: 0, discounts: 0, customers: 0, totalTransactions: 0, avgBill: 0 });
+  const [statsChange, setStatsChange] = useState({ revenuePercent: 0, revenueLabel: 'from yesterday' });
+  const [statsRange, setStatsRange] = useState({ mode: 'day', preset: 'last30', month: new Date().toISOString().slice(0, 7), from: '', to: '' });
+  const [statsLoading, setStatsLoading] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -37,18 +45,98 @@ const Info = () => {
     return resolvePartnerId(partnerInfo);
   }, [location?.state?.partnerId, partnerInfo]);
 
-  const fetchStats = async (id) => {
+  const fetchTransactions = async (id) => {
     if (!id) return;
     setIsLoading(true);
     try {
       const res = await axios.get(`${API_BASE_URL}/api/admin/partner-transactions/${id}`);
       setTransactions(Array.isArray(res?.data?.transactions) ? res.data.transactions : []);
-      setStats(res?.data?.stats || { revenue: 0, discounts: 0, customers: 0, avgBill: 0 });
     } catch (_error) {
       setTransactions([]);
-      setStats({ revenue: 0, discounts: 0, customers: 0, avgBill: 0 });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const toYyyyMmDdLocal = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const resolveSelectedRange = () => {
+    const now = new Date();
+    const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    if (statsRange.mode === 'month') {
+      const [yearStr, monthStr] = String(statsRange.month || '').split('-');
+      const year = Number(yearStr);
+      const monthIndex = Number(monthStr) - 1;
+      if (!Number.isFinite(year) || !Number.isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+        return { from: toYyyyMmDdLocal(todayLocal), to: toYyyyMmDdLocal(todayLocal), label: 'vs previous period' };
+      }
+      const start = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+      const end = new Date(year, monthIndex + 1, 0, 0, 0, 0, 0);
+      return { from: toYyyyMmDdLocal(start), to: toYyyyMmDdLocal(end), label: 'vs previous month' };
+    }
+
+    if (statsRange.mode === 'custom') {
+      const from = String(statsRange.from || '').trim();
+      const to = String(statsRange.to || '').trim();
+      if (from && to) {
+        const normalizedFrom = from <= to ? from : to;
+        const normalizedTo = from <= to ? to : from;
+        return { from: normalizedFrom, to: normalizedTo, label: 'vs previous period' };
+      }
+      return { from: toYyyyMmDdLocal(todayLocal), to: toYyyyMmDdLocal(todayLocal), label: 'vs previous period' };
+    }
+
+    const preset = String(statsRange.preset || 'today');
+    if (preset === 'yesterday') {
+      const start = new Date(todayLocal);
+      start.setDate(start.getDate() - 1);
+      return { from: toYyyyMmDdLocal(start), to: toYyyyMmDdLocal(start), label: 'from day before' };
+    }
+    if (preset === 'last7') {
+      const start = new Date(todayLocal);
+      start.setDate(start.getDate() - 6);
+      return { from: toYyyyMmDdLocal(start), to: toYyyyMmDdLocal(todayLocal), label: 'vs previous 7 days' };
+    }
+    if (preset === 'last30') {
+      const start = new Date(todayLocal);
+      start.setDate(start.getDate() - 29);
+      return { from: toYyyyMmDdLocal(start), to: toYyyyMmDdLocal(todayLocal), label: 'vs previous 30 days' };
+    }
+    return { from: toYyyyMmDdLocal(todayLocal), to: toYyyyMmDdLocal(todayLocal), label: 'from yesterday' };
+  };
+
+  const fetchDashboardStats = async (id) => {
+    if (!id) return;
+    const { from, to, label } = resolveSelectedRange();
+    setStatsLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/partner-dashboard-stats/${id}`, {
+        params: { from, to }
+      });
+      const current = res?.data?.current || {};
+      const changes = res?.data?.changes || {};
+      setStats({
+        revenue: Number(current.revenue) || 0,
+        discounts: Number(current.discounts) || 0,
+        customers: Number(current.customers) || 0,
+        totalTransactions: Number(current.totalTransactions) || 0,
+        avgBill: Number(current.avgBill) || 0
+      });
+      setStatsChange({
+        revenuePercent: Number(changes.revenuePercent) || 0,
+        revenueLabel: label
+      });
+    } catch (_error) {
+      setStats({ revenue: 0, discounts: 0, customers: 0, totalTransactions: 0, avgBill: 0 });
+      setStatsChange({ revenuePercent: 0, revenueLabel: label });
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -110,36 +198,17 @@ const Info = () => {
 
   useEffect(() => {
     if (partnerId) {
-      fetchStats(partnerId);
+      fetchTransactions(partnerId);
+      fetchDashboardStats(partnerId);
     }
   }, [partnerId]);
 
-  const revenueChange = useMemo(() => {
-    if (!Array.isArray(transactions) || transactions.length === 0) return 0;
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(todayStart.getDate() - 1);
+  useEffect(() => {
+    if (!partnerId) return;
+    fetchDashboardStats(partnerId);
+  }, [partnerId, statsRange.mode, statsRange.preset, statsRange.month, statsRange.from, statsRange.to]);
 
-    let todayRevenue = 0;
-    let yesterdayRevenue = 0;
-
-    transactions.forEach((tx) => {
-      const txDate = new Date(tx.createdAt);
-      const amount = Number(tx.billAmount) || 0;
-      if (txDate >= todayStart) {
-        todayRevenue += amount;
-        return;
-      }
-      if (txDate >= yesterdayStart && txDate < todayStart) {
-        yesterdayRevenue += amount;
-      }
-    });
-
-    if (yesterdayRevenue === 0) return todayRevenue > 0 ? 100 : 0;
-    return ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100;
-  }, [transactions]);
-
+  const revenueChange = Number(statsChange.revenuePercent) || 0;
   const revenueChangePrefix = revenueChange > 0 ? '+' : '';
   const discountPercent = stats.revenue > 0 ? ((stats.discounts / stats.revenue) * 100) : 0;
   const partnerCommissionPercent = Number(partnerInfo?.platformCommission || 15);
@@ -155,11 +224,12 @@ const Info = () => {
     });
   }, [transactions, searchQuery]);
   const statsCards = [
-    { title: "Total Revenue", value: formatCurrency(stats.revenue), sub: `${revenueChangePrefix}${revenueChange.toFixed(1)}% from yesterday`, icon: <LuTrendingUp />, color: "green" },
+    { title: "Total Revenue", value: formatCurrency(stats.revenue), sub: `${revenueChangePrefix}${revenueChange.toFixed(1)}% ${statsChange.revenueLabel}`, icon: <LuTrendingUp />, color: "green" },
     { title: "Discounts Given", value: formatCurrency(stats.discounts), sub: `${discountPercent.toFixed(1)}% of revenue`, icon: "$", color: "yellow" },
-    { title: "Customers", value: String(stats.customers || 0), sub: "Total transactions", icon: <LuUsers />, color: "blue" },
+    { title: "Customers", value: String(stats.customers || 0), sub: "Unique customers", icon: <LuUsers />, color: "blue" },
+    { title: "Total transactions", value: String(stats.totalTransactions || 0), sub: "In selected range", icon: <LuFile />, color: "blue" },
     { title: "Avg. Bill", value: formatCurrency(stats.avgBill), sub: "Per transaction", icon: <LuFile />, color: "purple" },
-    { title: "Partner Commission", value: formatCurrency(partnerCommission), sub: `${partnerCommissionPercent}% of total revenue`, icon: <LuFile />, color: "purple" },
+    { title: "Partner Commission", value: formatCurrency(partnerCommission), sub: `${partnerCommissionPercent}% of revenue`, icon: <LuFile />, color: "purple" },
   ];
 
   return (
@@ -186,6 +256,69 @@ const Info = () => {
         </div>
         <div className="action-buttons">
           {/* actions removed as requested */}
+        </div>
+      </div>
+
+      <div className="dashboard-filters">
+        <div className="dashboard-filters-left">
+          <select
+            className="dashboard-filter-select"
+            value={statsRange.mode}
+            onChange={(e) => setStatsRange((prev) => ({ ...prev, mode: e.target.value }))}
+            aria-label="Stats filter type"
+          >
+            <option value="day">Day</option>
+            <option value="month">Month</option>
+            <option value="custom">Custom range</option>
+          </select>
+
+          {statsRange.mode === 'day' ? (
+            <select
+              className="dashboard-filter-select"
+              value={statsRange.preset}
+              onChange={(e) => setStatsRange((prev) => ({ ...prev, preset: e.target.value }))}
+              aria-label="Day preset"
+            >
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last7">Last 7 days</option>
+              <option value="last30">Last 30 days</option>
+            </select>
+          ) : null}
+
+          {statsRange.mode === 'month' ? (
+            <input
+              className="dashboard-filter-input"
+              type="month"
+              value={statsRange.month}
+              onChange={(e) => setStatsRange((prev) => ({ ...prev, month: e.target.value }))}
+              aria-label="Select month"
+            />
+          ) : null}
+
+          {statsRange.mode === 'custom' ? (
+            <div className="dashboard-filter-range">
+              <input
+                className="dashboard-filter-input"
+                type="date"
+                value={statsRange.from}
+                onChange={(e) => setStatsRange((prev) => ({ ...prev, from: e.target.value }))}
+                aria-label="From date"
+              />
+              <span className="dashboard-filter-sep">to</span>
+              <input
+                className="dashboard-filter-input"
+                type="date"
+                value={statsRange.to}
+                onChange={(e) => setStatsRange((prev) => ({ ...prev, to: e.target.value }))}
+                aria-label="To date"
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <div className="dashboard-filters-right">
+          {statsLoading ? <span className="dashboard-filter-loading">Updating...</span> : null}
         </div>
       </div>
 

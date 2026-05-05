@@ -2,7 +2,7 @@
   padding: 24px;
   background-color: #f8fafc;
   min-height: 100vh;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', 'Noto Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
 .info-topbar {
@@ -119,6 +119,66 @@
 .logout { background: #fef2f2; color: #ef4444; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1); }
 
 /* Stats Grid */
+.dashboard-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.dashboard-filters-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.dashboard-filter-select,
+.dashboard-filter-input {
+  height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 13px;
+  color: #0f172a;
+  flex: 0 0 auto;
+  max-width: 150px;
+}
+
+.dashboard-filter-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.dashboard-filter-sep {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.dashboard-filter-loading {
+  font-size: 12px;
+  color: #64748b;
+}
+
+@media (max-width: 520px) {
+  .dashboard-filters { padding: 8px 10px; }
+  .dashboard-filter-select { max-width: 110px; padding: 6px 8px; }
+  .dashboard-filter-input { max-width: 120px; padding: 6px 8px; }
+  .dashboard-filter-sep { display: none; }
+  .dashboard-filter-range { gap: 6px; }
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
