@@ -2,6 +2,7 @@ const Partner = require('../models/Partner');
 const PartnersInfo = require('../models/PartnersInfo');
 const Admin = require('../models/Admin');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const Bill = require('../models/Bill');
@@ -331,10 +332,25 @@ exports.getPartnerDashboardStats = async (req, res) => {
         const previousStart = new Date(normalizedStart.getTime() - rangeMs);
 
         const makeStats = async (rangeStart, rangeEndExclusive) => {
+            const startObjectId = mongoose.Types.ObjectId.createFromTime(
+                Math.floor(rangeStart.getTime() / 1000)
+            );
+            const endObjectId = mongoose.Types.ObjectId.createFromTime(
+                Math.floor(rangeEndExclusive.getTime() / 1000)
+            );
+
             const bills = await Bill.find({
                 partnerId,
                 status: 'Verified',
-                createdAt: { $gte: rangeStart, $lt: rangeEndExclusive }
+                $or: [
+                    { createdAt: { $gte: rangeStart, $lt: rangeEndExclusive } },
+                    {
+                        $and: [
+                            { $or: [{ createdAt: { $exists: false } }, { createdAt: null }] },
+                            { _id: { $gte: startObjectId, $lt: endObjectId } }
+                        ]
+                    }
+                ]
             }).select('billAmount discountAmount userId');
 
             let revenue = 0;
